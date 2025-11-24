@@ -430,12 +430,11 @@ export default function DashboardPrototype() {
   const [ngramSize, setNgramSize] = useState(1);
   const [themeCompareMode, setThemeCompareMode] = useState("total");
 
-  // bucket function
   function bucketize(nw) {
     if (nw == null || nw === "") return "Unknown";
-    if (nw < 500) return "Small Cap";
-    if (nw < 5000) return "Mid Cap";
-    return "Large Cap";
+    if (nw < 5000) return "Small Cap";      // Less than ₹5,000 crore
+    if (nw < 20000) return "Mid Cap";       // ₹5,000 to ₹20,000 crore
+    return "Large Cap";                      // ₹20,000 crore and above
   }
 
   useEffect(() => {
@@ -475,7 +474,7 @@ export default function DashboardPrototype() {
         // Extract unique dropdown options
         const sectors = ["All", ...Array.from(new Set(enrichedQ5.map((r) => r.Sector).filter((s) => s !== "Unknown")))];
         const companies = ["All", ...Array.from(new Set(enrichedQ5.map((r) => r.Company).filter((c) => c !== "Unknown")))];
-        const capBuckets = ["All", ...Array.from(new Set(enrichedQ5.map((r) => r.CapBucket)))];
+        const capBuckets = ["All", "Large Cap", "Mid Cap", "Small Cap", "Unknown"];
 
         setQ5Data({
           generalDf,
