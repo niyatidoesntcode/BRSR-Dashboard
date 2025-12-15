@@ -14,6 +14,20 @@ import Image from "next/image";
 
 import * as Q5Handler from "./questionHandlers/Q5Handler";
 import * as Q6Handler from "./questionHandlers/Q6Handler";
+import * as P1Handler from "./principleHandlers/P1Handler";
+import * as P2Handler from "./principleHandlers/P2Handler";
+import * as P3Handler from "./principleHandlers/P3Handler";
+import * as P4Handler from "./principleHandlers/P4Handler";
+import * as P5Handler from "./principleHandlers/P5Handler";
+import * as P6Handler from "./principleHandlers/P6Handler";
+import * as P7Handler from "./principleHandlers/P7Handler";
+import * as P8Handler from "./principleHandlers/P8Handler";
+import * as P9Handler from "./principleHandlers/P9Handler";
+
+import * as P5Q5Handler from "./questionHandlers/P5Q5Handler";
+import * as P5Q8Handler from "./questionHandlers/P5Q8Handler";
+import * as P5Q1Handler from "./questionHandlers/P5Q1Handler";
+import * as P5Q2Handler from "./questionHandlers/P5Q2Handler";
 
 // Build a registry mapping qids -> handler module
 const HANDLERS = {
@@ -22,6 +36,19 @@ const HANDLERS = {
   "6": Q6Handler,
   // "7": Q7Handler,
   // ...
+  "P1": P1Handler,
+  "P2": P2Handler,
+  "P3": P3Handler,
+  "P4": P4Handler,
+  "P5": P5Handler,
+  "P6": P6Handler,
+  "P7": P7Handler,
+  "P8": P8Handler,
+  "P9": P9Handler,
+  "P5_Q5": P5Q5Handler,
+  "P5_Q8": P5Q8Handler,
+  "P5_Q1": P5Q1Handler,
+  "P5_Q2": P5Q2Handler,
 };
 
 const LOGO_PATH = "/logo.png";
@@ -116,7 +143,7 @@ export default function DashboardPrototype() {
         const data = await handler.loadData({
           // You can provide defaults here or let the handler decide
           generalCsvPath: "/GeneralDisclosures_df.csv",
-          questionCsvPath: `/GD_Q${selectedQuestion}.csv`,
+          questionCsvPath: `/${selectedQuestion}.csv`,
         });
         if (!cancelled) {
           setHandlerData(data || {});
@@ -250,7 +277,7 @@ HANDLERS[selectedQuestion].QuestionPage
                   return (
                     <button
                       key={p.id}
-                      onClick={() => navTo(p.id)}
+                      onClick={() => goToQuestion(p.id)}
                       className={`w-full text-left py-3 pl-3 pr-2 rounded-l-md mb-1 ${active ? "bg-slate-100" : "hover:bg-slate-50"}`}
                       style={active ? { borderLeft: `4px solid ${activeBlue}` } : {}}
                     >
@@ -277,7 +304,7 @@ HANDLERS[selectedQuestion].QuestionPage
                     <div className="text-sm text-slate-500">Management &amp; Process Disclosures › Q{selectedQuestion}</div>
                   </div>
                 </div>
-                <h1 className="text-xl font-bold text-slate-900">{`Q${selectedQuestion} — ${GD_QUESTIONS.find(q => q.id === selectedQuestion)?.title || ""}`}</h1>
+                <h1 className="text-xl font-bold text-slate-900">{`${selectedQuestion} — ${GD_QUESTIONS.find(q => q.id === selectedQuestion)?.title || ""}`}</h1>
               </>
             ) : (
               <>
