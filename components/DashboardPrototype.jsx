@@ -28,6 +28,7 @@ import * as P5Q5Handler from "./questionHandlers/P5Q5Handler";
 import * as P5Q8Handler from "./questionHandlers/P5Q8Handler";
 import * as P5Q1Handler from "./questionHandlers/P5Q1Handler";
 import * as P5Q2Handler from "./questionHandlers/P5Q2Handler";
+import * as P3QuantHandler from "./questionHandlers/P3QuantHandler";
 
 // Build a registry mapping qids -> handler module
 const HANDLERS = {
@@ -49,6 +50,7 @@ const HANDLERS = {
   "P5_Q8": P5Q8Handler,
   "P5_Q1": P5Q1Handler,
   "P5_Q2": P5Q2Handler,
+  "P3_Quant": P3QuantHandler,
 };
 
 const LOGO_PATH = "/logo.png";
@@ -277,7 +279,7 @@ HANDLERS[selectedQuestion].QuestionPage
                   return (
                     <button
                       key={p.id}
-                      onClick={() => goToQuestion(p.id)}
+                      onClick={() => p.id === "P3" ? navTo(p.id) : goToQuestion(p.id)}
                       className={`w-full text-left py-3 pl-3 pr-2 rounded-l-md mb-1 ${active ? "bg-slate-100" : "hover:bg-slate-50"}`}
                       style={active ? { borderLeft: `4px solid ${activeBlue}` } : {}}
                     >
@@ -443,13 +445,26 @@ HANDLERS[selectedQuestion].QuestionPage
                 )}
 
                 {selected.startsWith("P") && (
-                  <div className="space-y-4">
-                    <div className="p-4 bg-white rounded shadow-sm border border-slate-100">
-                      <div className="text-sm text-slate-500 mb-2">Summary</div>
-                      <div className="text-lg font-semibold">{PRINCIPLES.find((p) => p.id === selectedPrinciple)?.short}</div>
-                      <div className="text-sm text-slate-600 mt-1">{PRINCIPLES.find((p) => p.id === selectedPrinciple)?.name}</div>
-                    </div>
-                  </div>
+                  <>
+                    {HANDLERS[selected] && HANDLERS[selected].QuestionPage ? (
+                      <div>
+                        {React.createElement(HANDLERS[selected].QuestionPage, {
+                          onGoToQuestion: goToQuestion,
+                          data: null,
+                          filters,
+                          setFilters,
+                        })}
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="p-4 bg-white rounded shadow-sm border border-slate-100">
+                          <div className="text-sm text-slate-500 mb-2">Summary</div>
+                          <div className="text-lg font-semibold">{PRINCIPLES.find((p) => p.id === selectedPrinciple)?.short}</div>
+                          <div className="text-sm text-slate-600 mt-1">{PRINCIPLES.find((p) => p.id === selectedPrinciple)?.name}</div>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </>
             )}

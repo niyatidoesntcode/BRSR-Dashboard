@@ -556,6 +556,12 @@ video {
 .mt-4 {
   margin-top: 1rem;
 }
+.mt-6 {
+  margin-top: 1.5rem;
+}
+.block {
+  display: block;
+}
 .flex {
   display: flex;
 }
@@ -571,17 +577,32 @@ video {
 .hidden {
   display: none;
 }
+.h-4 {
+  height: 1rem;
+}
 .h-full {
   height: 100%;
 }
+.h-6 {
+  height: 1.5rem;
+}
+.max-h-48 {
+  max-height: 12rem;
+}
 .max-h-60 {
   max-height: 15rem;
+}
+.max-h-64 {
+  max-height: 16rem;
 }
 .min-h-\[calc\(100vh-72px\)\] {
   min-height: calc(100vh - 72px);
 }
 .min-h-screen {
   min-height: 100vh;
+}
+.w-4 {
+  width: 1rem;
 }
 .w-full {
   width: 100%;
@@ -594,6 +615,15 @@ video {
 }
 .cursor-pointer {
   cursor: pointer;
+}
+.list-inside {
+  list-style-position: inside;
+}
+.list-disc {
+  list-style-type: disc;
+}
+.grid-cols-1 {
+  grid-template-columns: repeat(1, minmax(0, 1fr));
 }
 .grid-cols-12 {
   grid-template-columns: repeat(12, minmax(0, 1fr));
@@ -610,8 +640,14 @@ video {
 .flex-wrap {
   flex-wrap: wrap;
 }
+.items-end {
+  align-items: flex-end;
+}
 .items-center {
   align-items: center;
+}
+.justify-end {
+  justify-content: flex-end;
 }
 .justify-center {
   justify-content: center;
@@ -656,11 +692,24 @@ video {
   margin-top: calc(2rem * calc(1 - var(--tw-space-y-reverse)));
   margin-bottom: calc(2rem * var(--tw-space-y-reverse));
 }
+.space-y-2 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(0.5rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(0.5rem * var(--tw-space-y-reverse));
+}
 .overflow-auto {
   overflow: auto;
 }
 .overflow-hidden {
   overflow: hidden;
+}
+.overflow-y-auto {
+  overflow-y: auto;
+}
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .rounded {
   border-radius: 0.25rem;
@@ -684,6 +733,10 @@ video {
 .border-r {
   border-right-width: 1px;
 }
+.border-blue-200 {
+  --tw-border-opacity: 1;
+  border-color: rgb(191 219 254 / var(--tw-border-opacity, 1));
+}
 .border-blue-600 {
   --tw-border-opacity: 1;
   border-color: rgb(37 99 235 / var(--tw-border-opacity, 1));
@@ -700,6 +753,10 @@ video {
   --tw-border-opacity: 1;
   border-color: rgb(203 213 225 / var(--tw-border-opacity, 1));
 }
+.bg-blue-50 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(239 246 255 / var(--tw-bg-opacity, 1));
+}
 .bg-blue-600 {
   --tw-bg-opacity: 1;
   background-color: rgb(37 99 235 / var(--tw-bg-opacity, 1));
@@ -715,6 +772,10 @@ video {
 .bg-white {
   --tw-bg-opacity: 1;
   background-color: rgb(255 255 255 / var(--tw-bg-opacity, 1));
+}
+.bg-slate-200 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(226 232 240 / var(--tw-bg-opacity, 1));
 }
 .p-1 {
   padding: 0.25rem;
@@ -741,6 +802,10 @@ video {
 .px-4 {
   padding-left: 1rem;
   padding-right: 1rem;
+}
+.px-6 {
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
 }
 .py-1 {
   padding-top: 0.25rem;
@@ -797,6 +862,10 @@ video {
   font-size: 0.75rem;
   line-height: 1rem;
 }
+.text-3xl {
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+}
 .font-bold {
   font-weight: 700;
 }
@@ -819,6 +888,10 @@ video {
 .text-blue-600 {
   --tw-text-opacity: 1;
   color: rgb(37 99 235 / var(--tw-text-opacity, 1));
+}
+.text-blue-800 {
+  --tw-text-opacity: 1;
+  color: rgb(30 64 175 / var(--tw-text-opacity, 1));
 }
 .text-green-600 {
   --tw-text-opacity: 1;
@@ -855,6 +928,10 @@ video {
 .text-white {
   --tw-text-opacity: 1;
   color: rgb(255 255 255 / var(--tw-text-opacity, 1));
+}
+.text-blue-900 {
+  --tw-text-opacity: 1;
+  color: rgb(30 58 138 / var(--tw-text-opacity, 1));
 }
 .opacity-0 {
   opacity: 0;
@@ -924,6 +1001,16 @@ video {
   --tw-ring-opacity: 1;
   --tw-ring-color: rgb(14 165 233 / var(--tw-ring-opacity, 1));
 }
+@media (min-width: 768px) {
+
+  .md\:grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .md\:grid-cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
 @media (min-width: 1024px) {
 
   .lg\:col-span-4 {
@@ -944,6 +1031,10 @@ video {
 
   .lg\:col-span-8 {
     grid-column: span 8 / span 8;
+  }
+
+  .lg\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .lg\:grid-cols-4 {
