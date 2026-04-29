@@ -29,6 +29,7 @@ import * as P5Q8Handler from "./questionHandlers/P5Q8Handler";
 import * as P5Q1Handler from "./questionHandlers/P5Q1Handler";
 import * as P5Q2Handler from "./questionHandlers/P5Q2Handler";
 import * as P3QuantHandler from "./questionHandlers/P3QuantHandler";
+import * as P3QuantTrialHandler from "./questionHandlers/P3QuantTrialHandler";
 
 // Build a registry mapping qids -> handler module
 const HANDLERS = {
@@ -51,6 +52,7 @@ const HANDLERS = {
   "P5_Q1": P5Q1Handler,
   "P5_Q2": P5Q2Handler,
   "P3_Quant": P3QuantHandler,
+  "P3_Quant_Trial": P3QuantTrialHandler,
 };
 
 const LOGO_PATH = "/logo.png";

@@ -108,6 +108,13 @@ export function QuestionPage({ onGoToQuestion }) {
             >
               Open Quantitative Dashboard →
             </button>
+
+            <button
+              onClick={() => onGoToQuestion("P3_Quant_Trial")}
+              className="ml-3 px-6 py-3 rounded-lg font-semibold border border-slate-300 text-slate-700 bg-white hover:bg-slate-50 transition"
+            >
+              Open Trial Quant Page (Flattened CSV) →
+            </button>
           </div>
         </div>
       )}
