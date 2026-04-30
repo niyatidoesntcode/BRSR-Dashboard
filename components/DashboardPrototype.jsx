@@ -56,9 +56,31 @@ const HANDLERS = {
 };
 
 const LOGO_PATH = "/logo.png";
-const HEADER_HEIGHT = 72;
-const SIDEBAR_WIDTH = 256;
-const PALETTE = { activeBlue: "#176fb3" };
+const HEADER_HEIGHT = 58;
+const SIDEBAR_WIDTH = 260;
+const PALETTE = {
+  activeBlue: "#176fb3",
+  activeBlueLight: "#e8f2fb",
+  border: "#e2e8f0",
+  bg: "#f7f8fb",
+  text1: "#1a2333",
+  text2: "#64748b",
+  text3: "#94a3b8",
+};
+
+const PRINCIPLE_NAV = [
+  { id: "P3", short: "Workforce" },
+  { id: "P5", short: "Human Rights" },
+  { id: "P8", short: "Social Impact" },
+  { id: "P9", short: "Consumer" },
+];
+
+const KPI_CHIPS = {
+  P3: ["Benefit Coverage", "Worker Gap", "Wellbeing Spend", "Safety (LTIFR)", "Training", "Career Dev"],
+  P5: ["HR Policy", "Complaints", "Child Labour", "Wages", "Training", "Grievances"],
+  P8: ["CSR Spend", "Projects", "Beneficiaries", "Procurement %", "Local Hiring", "Social Audit"],
+  P9: ["Complaints", "Resolution %", "Cybersecurity", "Product Safety", "NPS", "Recalls"],
+};
 
 const PRINCIPLES = [
   { id: "P1", short: "Ethics & Transparency", name: "Businesses should conduct and govern themselves with integrity, and in a manner that is Ethical, Transparent and Accountable." },
@@ -85,6 +107,11 @@ export default function DashboardPrototype() {
   const [selected, setSelected] = useState("gd-b");
   const [collapsed, setCollapsed] = useState(false);
   const [selectedPrinciple, setSelectedPrinciple] = useState("P1");
+  const [expandedP, setExpandedP] = useState("P3");
+  const [activeTopTab, setActiveTopTab] = useState("Quant KPIs");
+  const [viewModeUi, setViewModeUi] = useState("Sector");
+  const [sectorUi, setSectorUi] = useState("All Sectors");
+  const [activeKpiUi, setActiveKpiUi] = useState([]);
 
   // QUESTION handler state
   const [selectedQuestion, setSelectedQuestion] = useState(null); // "5", "6", ...
@@ -171,184 +198,504 @@ export default function DashboardPrototype() {
     setSelected(item);
     if (item?.startsWith?.("P")) setSelectedPrinciple(item);
     setSelectedQuestion(null);
+    if (item?.startsWith?.("P")) setExpandedP(item);
   }
 
   function goToQuestion(qid) {
     setSelectedQuestion(qid);
     setSelected("gd-b");
+    if (qid === "P3_Quant") {
+      setSelectedPrinciple("P3");
+      setExpandedP("P3");
+      setActiveTopTab("Quant KPIs");
+      setViewModeUi("Sector");
+      setSectorUi("All Sectors");
+      setActiveKpiUi(KPI_CHIPS.P3);
+    }
     // reset handler states; loader will run via useEffect
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function backToSectionB() {
-    setSelectedQuestion(null);
-    setSelected("gd-b");
+    if (selectedQuestion?.startsWith("P")) {
+      const base = selectedQuestion.split("_")[0];
+      setSelectedQuestion(null);
+      navTo(base);
+    } else {
+      setSelectedQuestion(null);
+      setSelected("gd-b");
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   // UI helpers
   const activeBlue = PALETTE.activeBlue;
-  const bannerColor = "#f1f6fb";
-  // Determine which handler component to render
-const HandlerComp =
-selectedQuestion &&
-HANDLERS[selectedQuestion] &&
-HANDLERS[selectedQuestion].QuestionPage
-  ? HANDLERS[selectedQuestion].QuestionPage
-  : null;
+  const bannerColor = "#eef3f9";
+
+  const HandlerComp =
+    selectedQuestion &&
+    HANDLERS[selectedQuestion] &&
+    HANDLERS[selectedQuestion].QuestionPage
+      ? HANDLERS[selectedQuestion].QuestionPage
+      : null;
+
+  const activePrincipleId = useMemo(() => {
+    if (selectedQuestion?.startsWith("P")) {
+      return selectedQuestion.split("_")[0];
+    }
+    if (selected?.startsWith("P")) {
+      return selected;
+    }
+    return null;
+  }, [selected, selectedQuestion]);
+
+  const isPrincipleView = Boolean(activePrincipleId && PRINCIPLE_NAV.some((p) => p.id === activePrincipleId));
+
+  const principleBannerInfo = PRINCIPLES.find((p) => p.id === activePrincipleId);
+
+  const dynamicSectorOptions = useMemo(() => {
+    const sectors = handlerData?.sectors;
+    if (Array.isArray(sectors) && sectors.length) {
+      return sectors;
+    }
+    return ["All Sectors", "Manufacturing", "Finance", "IT & Comms", "Energy", "Construction", "Trade", "Other"];
+  }, [handlerData]);
+
+  function toggleKpiUi(chip) {
+    setActiveKpiUi((prev) => {
+      if (prev.includes(chip)) {
+        if (prev.length === 1) return prev;
+        return prev.filter((x) => x !== chip);
+      }
+      return [...prev, chip];
+    });
+  }
+
+  function resetControlZoneUi() {
+    setViewModeUi("Sector");
+    setSectorUi("All Sectors");
+    setActiveKpiUi([]);
+  }
+
+  function selectPrincipleQuant(pid) {
+    setExpandedP(pid);
+    setActiveTopTab("Quant KPIs");
+    if (pid === "P3") {
+      goToQuestion("P3_Quant");
+      return;
+    }
+    navTo(pid);
+  }
+
+  function renderStatCard(label, value, sub, color) {
+    return (
+      <div
+        className="bg-white border rounded-lg"
+        style={{ borderColor: PALETTE.border, padding: "18px 22px" }}
+      >
+        <div
+          className="text-[11px] font-semibold uppercase tracking-[0.07em]"
+          style={{ color: PALETTE.text3 }}
+        >
+          {label}
+        </div>
+        <div className="text-[26px] font-bold leading-tight mt-1" style={{ color: color || activeBlue }}>
+          {value}
+        </div>
+        <div className="text-xs mt-1" style={{ color: PALETTE.text3 }}>
+          {sub}
+        </div>
+      </div>
+    );
+  }
+
+  function renderPlaceholderPanel(title, height, note) {
+    return (
+      <div className="bg-white border rounded-lg overflow-hidden" style={{ borderColor: PALETTE.border, minHeight: height }}>
+        <div className="px-5 py-3 border-b flex items-center justify-between" style={{ borderColor: PALETTE.border }}>
+          <span className="text-[13px] font-semibold" style={{ color: PALETTE.text1 }}>{title}</span>
+          {note ? (
+            <span className="text-[11px] px-2 py-[2px] rounded-full border" style={{ color: PALETTE.text3, borderColor: PALETTE.border, background: "#f8fafc" }}>
+              {note}
+            </span>
+          ) : null}
+        </div>
+        <div className="h-full min-h-[120px] flex items-center justify-center" style={{ color: PALETTE.text3 }}>
+          <span className="text-xs tracking-[0.05em] uppercase">Chart Placeholder</span>
+        </div>
+      </div>
+    );
+  }
 
 
   return (
-    <div style={{ fontFamily: "var(--dashboard-font-family)" }} className="min-h-screen relative bg-slate-50 text-slate-800">
+    <div style={{ fontFamily: "var(--dashboard-font-family)", background: PALETTE.bg }} className="min-h-screen relative text-slate-800">
       {/* Header */}
       <header
-        className="fixed left-0 right-0 top-0 z-50 flex items-center gap-4 px-4"
-        style={{ height: HEADER_HEIGHT, background: "#ffffff", borderBottom: "1px solid rgba(226,232,240,0.9)" }}
+        className="fixed left-0 right-0 top-0 z-50 flex items-center gap-3 px-5"
+        style={{ height: HEADER_HEIGHT, background: "#ffffff", borderBottom: `1px solid ${PALETTE.border}` }}
       >
         <button
           aria-label="Toggle sidebar"
           title="Toggle sidebar"
           onClick={() => setCollapsed((prev) => !prev)}
-          className="flex items-center justify-center p-2 rounded hover:bg-slate-100 transition"
-          style={{ width: 44, height: 44 }}
+          className="flex items-center justify-center rounded hover:bg-slate-100 transition"
+          style={{ width: 34, height: 34, color: PALETTE.text2 }}
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <rect x="3" y="6" width="18" height="2" rx="1" fill="#1f2937" />
-            <rect x="3" y="11" width="18" height="2" rx="1" fill="#1f2937" />
-            <rect x="3" y="16" width="18" height="2" rx="1" fill="#1f2937" />
+          <svg width="18" height="14" viewBox="0 0 18 14" fill="none" aria-hidden>
+            <rect y="0" width="18" height="2" rx="1" fill="currentColor" />
+            <rect y="6" width="18" height="2" rx="1" fill="currentColor" />
+            <rect y="12" width="18" height="2" rx="1" fill="currentColor" />
           </svg>
         </button>
 
+        <div style={{ width: 1, height: 26, background: PALETTE.border }} />
+
         <div className="flex items-center gap-3">
-          <div style={{ width: 40, height: 40, position: "relative" }} className="rounded-md overflow-hidden bg-white">
-            <Image src={LOGO_PATH} alt="logo" fill style={{ objectFit: "contain", padding: 4 }} />
+          <div style={{ width: 30, height: 30, position: "relative", background: PALETTE.activeBlueLight }} className="rounded-md overflow-hidden">
+            <Image src={LOGO_PATH} alt="logo" fill style={{ objectFit: "contain", padding: 3 }} />
           </div>
 
           <div>
-            <div className="text-lg font-semibold text-slate-900">ESG Analytics Dashboard</div>
-            <div className="text-xs text-slate-500 italic">Business Responsibility & Sustainability Reporting</div>
+            <div className="text-[14px] font-bold" style={{ color: PALETTE.text1 }}>BRSR Social Analytics</div>
+            <div className="text-[10.5px] italic" style={{ color: PALETTE.text3 }}>Business Responsibility &amp; Sustainability Reporting</div>
           </div>
         </div>
+
+        <div className="flex-1" />
+        <div className="text-[11.5px] px-3 py-1 rounded-full border" style={{ color: PALETTE.text3, background: "#f8fafc", borderColor: PALETTE.border }}>FY 2022-23</div>
+        <div style={{ width: 1, height: 26, background: PALETTE.border }} />
+        <div className="text-[11.5px] px-3 py-1 rounded-full border" style={{ color: PALETTE.text2, background: "#f8fafc", borderColor: PALETTE.border }}>NSE/BSE</div>
       </header>
 
-      {/* layout */}
-      <div style={{ paddingTop: HEADER_HEIGHT }} className="flex transition-all duration-300 ease-in-out">
-        {/* Sidebar */}
+      {/* layout - with fixed sidebar and main */}
+      <div style={{ paddingTop: HEADER_HEIGHT, position: "relative" }} className="w-full min-w-0 overflow-x-hidden transition-all duration-300 ease-in-out">
+        {/* Sidebar - Fixed Position */}
         <aside
-          className="bg-white border-r border-slate-200 overflow-hidden"
+          className="fixed bg-white border-r overflow-y-auto z-40"
           style={{
+            left: 0,
+            top: HEADER_HEIGHT,
             width: collapsed ? 0 : SIDEBAR_WIDTH,
+            height: `calc(100vh - ${HEADER_HEIGHT}px)`,
             transition: "width 300ms cubic-bezier(.2,.9,.2,1)",
+            borderColor: PALETTE.border,
           }}
         >
-          <div className="h-full flex flex-col p-4" style={{ minHeight: `calc(100vh - ${HEADER_HEIGHT}px)` }}>
-            <div className={`transition-opacity duration-200 ease-in-out ${collapsed ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
-              <div className="mb-6">
-                <div className="text-sm text-slate-500 mb-2 font-medium">Main</div>
+          <div className={`transition-opacity duration-200 ease-in-out ${collapsed ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
+            <div className="p-[18px] pb-5" style={{ width: SIDEBAR_WIDTH }}>
+                <div className="text-[10.5px] font-bold uppercase tracking-[0.1em] pl-[14px] mb-[6px]" style={{ color: PALETTE.text3 }}>Main</div>
 
-                <nav className="mb-4">
+                <nav className="mb-5">
                   <button
                     onClick={() => navTo("overview")}
-                    className={`w-full text-left py-2 pl-3 rounded-l-md ${selected === "overview" ? "bg-slate-100 text-[#176fb3] font-semibold" : "hover:bg-slate-50"}`}
-                    style={selected === "overview" ? { borderLeft: `4px solid ${activeBlue}` } : {}}
+                    className="w-full text-left rounded-md px-3 py-[8px] text-[13.5px] transition"
+                    style={{
+                      color: selected === "overview" ? activeBlue : PALETTE.text1,
+                      background: selected === "overview" ? PALETTE.activeBlueLight : "transparent",
+                      borderLeft: `3px solid ${selected === "overview" ? activeBlue : "transparent"}`,
+                      fontWeight: selected === "overview" ? 600 : 400,
+                    }}
                   >
-                    <span className="text-[0.9rem]">Data Overview</span>
+                    Data Overview
                   </button>
 
                   <button
                     onClick={() => navTo("gd-a")}
-                    className={`w-full text-left py-2 pl-3 rounded-l-md mt-1 ${selected === "gd-a" ? "bg-slate-100 text-[#176fb3] font-semibold" : "hover:bg-slate-50"}`}
-                    style={selected === "gd-a" ? { borderLeft: `4px solid ${activeBlue}` } : {}}
+                    className="w-full text-left rounded-md px-3 py-[8px] text-[13.5px] mt-[2px] transition"
+                    style={{
+                      color: selected === "gd-a" ? activeBlue : PALETTE.text1,
+                      background: selected === "gd-a" ? PALETTE.activeBlueLight : "transparent",
+                      borderLeft: `3px solid ${selected === "gd-a" ? activeBlue : "transparent"}`,
+                      fontWeight: selected === "gd-a" ? 600 : 400,
+                    }}
                   >
-                    <span className="text-[0.9rem]">General Disclosures (Section A)</span>
+                    General Disclosures (Section A)
                   </button>
 
                   <button
                     onClick={() => navTo("gd-b")}
-                    className={`w-full text-left py-2 pl-3 rounded-l-md mt-1 ${selected === "gd-b" ? "bg-slate-100 text-[#176fb3] font-semibold" : "hover:bg-slate-50"}`}
-                    style={selected === "gd-b" ? { borderLeft: `4px solid ${activeBlue}` } : {}}
+                    className="w-full text-left rounded-md px-3 py-[8px] text-[13.5px] mt-[2px] transition"
+                    style={{
+                      color: selected === "gd-b" && !selectedQuestion ? activeBlue : PALETTE.text1,
+                      background: selected === "gd-b" && !selectedQuestion ? PALETTE.activeBlueLight : "transparent",
+                      borderLeft: `3px solid ${selected === "gd-b" && !selectedQuestion ? activeBlue : "transparent"}`,
+                      fontWeight: selected === "gd-b" && !selectedQuestion ? 600 : 400,
+                    }}
                   >
-                    <span className="text-[0.9rem]">Management &amp; Process Disclosures (Section B)</span>
+                    Management &amp; Process Disclosures (Section B)
                   </button>
                 </nav>
 
-                <div className="text-sm text-slate-500 mb-3 font-medium">Principles</div>
-              </div>
+                <div style={{ height: 1, background: PALETTE.border, marginBottom: 18 }} />
+                <div className="text-[10.5px] font-bold uppercase tracking-[0.1em] pl-[14px] mb-[6px]" style={{ color: PALETTE.text3 }}>Principles</div>
 
-              <nav className="flex-1 overflow-auto pr-2">
-                {PRINCIPLES.map((p) => {
-                  const active = selected === p.id;
+                <nav className="flex flex-col gap-[1px]">
+                  {PRINCIPLE_NAV.map((p) => {
+                    const isExp = expandedP === p.id;
+                    const isActive = activePrincipleId === p.id;
                   return (
-                    <button
-                      key={p.id}
-                      onClick={() => p.id === "P3" ? navTo(p.id) : goToQuestion(p.id)}
-                      className={`w-full text-left py-3 pl-3 pr-2 rounded-l-md mb-1 ${active ? "bg-slate-100" : "hover:bg-slate-50"}`}
-                      style={active ? { borderLeft: `4px solid ${activeBlue}` } : {}}
-                    >
-                      <div className="text-sm font-semibold flex items-center">
-                        <span className={active ? "text-[#176fb3]" : "text-slate-800"}>{p.id}</span>
-                        <span className="ml-2 text-sm font-medium text-slate-600 italic">– {p.short}</span>
+                      <div key={p.id}>
+                        <button
+                          onClick={() => {
+                            if (isExp) {
+                              setExpandedP(null);
+                            } else {
+                              setExpandedP(p.id);
+                              selectPrincipleQuant(p.id);
+                            }
+                          }}
+                          className="w-full text-left rounded-md px-3 py-[9px] flex items-center justify-between"
+                          style={{
+                            color: isActive ? activeBlue : PALETTE.text1,
+                            background: isActive && !isExp ? PALETTE.activeBlueLight : "transparent",
+                            borderLeft: `3px solid ${isActive && !isExp ? activeBlue : "transparent"}`,
+                            fontWeight: isActive || isExp ? 600 : 400,
+                          }}
+                        >
+                          <span>
+                            <span style={{ color: isActive ? activeBlue : "#475569", fontWeight: 700 }}>{p.id}</span>
+                            <span className="ml-[5px] text-[13px]" style={{ color: isActive ? activeBlue : PALETTE.text2 }}>- {p.short}</span>
+                          </span>
+                          <svg
+                            width="10"
+                            height="10"
+                            viewBox="0 0 10 10"
+                            style={{ transform: isExp ? "rotate(180deg)" : "none", transition: "transform 0.2s", color: PALETTE.text3 }}
+                          >
+                            <path d="M1 3l4 4 4-4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+                          </svg>
+                        </button>
+
+                        {isExp ? (
+                          <div className="pt-[2px] pb-1">
+                            {[
+                              { tab: "Quant KPIs", disabled: false },
+                              { tab: "SRS", disabled: true },
+                              { tab: "Combined", disabled: true },
+                            ].map((sub) => {
+                              const subActive = isActive && activeTopTab === sub.tab;
+                              return (
+                                <button
+                                  key={`${p.id}-${sub.tab}`}
+                                  onClick={() => {
+                                    if (sub.disabled) return;
+                                    setActiveTopTab(sub.tab);
+                                    selectPrincipleQuant(p.id);
+                                  }}
+                                  className="w-full text-left flex items-center gap-2 px-3 py-[6px]"
+                                  style={{
+                                    paddingLeft: 36,
+                                    color: sub.disabled ? PALETTE.text3 : subActive ? activeBlue : PALETTE.text2,
+                                    cursor: sub.disabled ? "not-allowed" : "pointer",
+                                    background: subActive ? "#f0f7ff" : "transparent",
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      width: 5,
+                                      height: 5,
+                                      borderRadius: "50%",
+                                      flexShrink: 0,
+                                      background: subActive ? activeBlue : sub.disabled ? PALETTE.border : "#94a3b8",
+                                    }}
+                                  />
+                                  <span className="text-[13px]">{sub.tab}</span>
+                                  {sub.disabled ? (
+                                    <span className="ml-auto text-[10px] px-1.5 py-[1px] rounded-full" style={{ color: PALETTE.text3, background: "#f1f5f9" }}>
+                                      Soon
+                                    </span>
+                                  ) : null}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : null}
                       </div>
-                    </button>
-                  );
-                })}
-              </nav>
+                    );
+                  })}
+                </nav>
+              </div>
             </div>
-          </div>
         </aside>
 
         {/* main content */}
-        <main className="flex-1 min-h-[calc(100vh-72px)] overflow-auto transition-all duration-300 ease-in-out">
-          <div style={{ background: bannerColor }} className="p-6 border-b border-slate-200">
+        <main 
+          className="fixed overflow-auto transition-all duration-300 ease-in-out"
+          style={{ 
+            top: HEADER_HEIGHT,
+            left: collapsed ? 0 : SIDEBAR_WIDTH,
+            right: 0,
+            bottom: 0,
+          }}
+        >
+          <div style={{ background: bannerColor, borderColor: PALETTE.border }} className="px-6 py-[18px] border-b">
             {selectedQuestion ? (
               <>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-3">
-                    <button onClick={backToSectionB} className="inline-flex items-center gap-1 px-3 py-1 rounded-md text-[#176fb3] border hover:bg-blue-50 transition text-sm">← Back</button>
-                    <div className="text-sm text-slate-500">Management &amp; Process Disclosures › Q{selectedQuestion}</div>
+                    <button onClick={backToSectionB} className="inline-flex items-center gap-1 px-3 py-1 rounded-md border hover:bg-blue-50 transition text-sm" style={{ color: activeBlue, borderColor: PALETTE.border }}>Back</button>
+                    <div className="text-sm" style={{ color: PALETTE.text2 }}>
+                      {selectedQuestion.startsWith("P") ? `Principle ${selectedQuestion.split("_")[0].slice(1)} - Quant KPIs` : `Management & Process Disclosures > Q${selectedQuestion}`}
+                    </div>
                   </div>
                 </div>
-                <h1 className="text-xl font-bold text-slate-900">{`${selectedQuestion} — ${GD_QUESTIONS.find(q => q.id === selectedQuestion)?.title || ""}`}</h1>
+                {selectedQuestion.startsWith("P") ? (
+                  <>
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-1" style={{ color: activeBlue }}>
+                      Principle {principleBannerInfo?.id?.slice(1)} - {principleBannerInfo?.short}
+                    </div>
+                    <h1 className="text-[15px] font-semibold" style={{ color: PALETTE.text1, maxWidth: 780, lineHeight: 1.45 }}>
+                      {principleBannerInfo?.name || "Quantitative KPI View"}
+                    </h1>
+                  </>
+                ) : (
+                  <h1 className="text-xl font-bold text-slate-900">{`${selectedQuestion} - ${GD_QUESTIONS.find(q => q.id === selectedQuestion)?.title || ""}`}</h1>
+                )}
               </>
             ) : (
               <>
-                {selected.startsWith("P") ? (
+                {isPrincipleView ? (
                   <>
-                    <h1 className="text-xl font-bold text-slate-900">{selectedPrinciple} — {PRINCIPLES.find((x) => x.id === selectedPrinciple)?.name}</h1>
-                    <div className="text-sm text-slate-600 mt-1">Explore quantitative and qualitative disclosures</div>
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-1" style={{ color: activeBlue }}>
+                      Principle {principleBannerInfo?.id?.slice(1)} - {principleBannerInfo?.short}
+                    </div>
+                    <div className="text-[15px] font-semibold" style={{ color: PALETTE.text1, maxWidth: 780, lineHeight: 1.45 }}>
+                      {principleBannerInfo?.name}
+                    </div>
                   </>
                 ) : selected === "gd-b" ? (
                   <>
-                    <h1 className="text-xl font-bold text-slate-900">Management &amp; Process Disclosures (Section B)</h1>
-                    <div className="text-sm text-slate-600 mt-1">Questions 5–9: commitments, performance, director's statement, oversight, committee</div>
+                    <h1 className="text-[19px] font-bold" style={{ color: PALETTE.text1 }}>Management &amp; Process Disclosures (Section B)</h1>
+                    <div className="text-[13px] mt-1" style={{ color: PALETTE.text2 }}>Questions 5-9: commitments, performance, director statement, oversight, committee</div>
                   </>
                 ) : selected === "gd-a" ? (
                   <>
-                    <h1 className="text-xl font-bold text-slate-900">General Disclosures (Section A)</h1>
-                    <div className="text-sm text-slate-600 mt-1">Placeholder: core company info, operations, products and CSR.</div>
+                    <h1 className="text-[19px] font-bold" style={{ color: PALETTE.text1 }}>General Disclosures (Section A)</h1>
+                    <div className="text-[13px] mt-1" style={{ color: PALETTE.text2 }}>Core company info, operations, products and CSR disclosures.</div>
                   </>
                 ) : (
                   <>
-                    <h1 className="text-xl font-bold text-slate-900">Data Overview</h1>
-                    <div className="text-sm text-slate-600 mt-1">Dataset summary & global KPIs</div>
+                    <h1 className="text-[19px] font-bold" style={{ color: PALETTE.text1 }}>Data Overview</h1>
+                    <div className="text-[13px] mt-1" style={{ color: PALETTE.text2 }}>Dataset summary &amp; global KPIs across all principles</div>
                   </>
                 )}
               </>
             )}
           </div>
 
+          {isPrincipleView && selectedQuestion !== "P3_Quant" ? (
+            <div className="sticky top-0 z-30 bg-white border-b" style={{ borderColor: "#d4dce8" }}>
+              <div className="flex border-b pl-[6px]" style={{ borderColor: PALETTE.border }}>
+                {["Quant KPIs", "SRS", "Combined"].map((tab) => {
+                  const disabled = tab !== "Quant KPIs";
+                  const active = activeTopTab === tab;
+                  return (
+                    <button
+                      key={tab}
+                      onClick={() => {
+                        if (!disabled) setActiveTopTab(tab);
+                      }}
+                      className="px-[22px] py-[11px] text-[13.5px] flex items-center gap-[7px]"
+                      style={{
+                        color: disabled ? PALETTE.text3 : active ? activeBlue : PALETTE.text2,
+                        borderBottom: `2px solid ${active ? activeBlue : "transparent"}`,
+                        marginBottom: -1,
+                        fontWeight: active ? 600 : 400,
+                        cursor: disabled ? "not-allowed" : "pointer",
+                      }}
+                    >
+                      {tab}
+                      {disabled ? (
+                        <span className="text-[10px] px-[5px] py-[1px] rounded-full" style={{ color: PALETTE.text3, background: "#f1f5f9" }}>
+                          Soon
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex items-center gap-[10px] px-5 py-[9px] flex-wrap" style={{ background: "#f9fafb", borderTop: `1px solid ${PALETTE.border}` }}>
+                <div className="flex rounded-full p-[2px] gap-[2px]" style={{ background: "#e8ecf1" }}>
+                  {["Sector", "Company"].map((mode) => (
+                    <button
+                      key={mode}
+                      onClick={() => setViewModeUi(mode)}
+                      className="px-[14px] py-1 rounded-full text-[12.5px]"
+                      style={{
+                        fontWeight: viewModeUi === mode ? 600 : 400,
+                        background: viewModeUi === mode ? "#fff" : "transparent",
+                        color: viewModeUi === mode ? PALETTE.text1 : PALETTE.text2,
+                        boxShadow: viewModeUi === mode ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                      }}
+                    >
+                      {mode}
+                    </button>
+                  ))}
+                </div>
+
+                <select
+                  value={sectorUi}
+                  onChange={(e) => setSectorUi(e.target.value)}
+                  className="text-[12.5px] px-[10px] py-[5px] rounded-md bg-white"
+                  style={{ border: `1px solid ${PALETTE.border}`, color: PALETTE.text1 }}
+                >
+                  {dynamicSectorOptions.map((s) => {
+                    const value = typeof s === "string" ? s : s.value;
+                    const label = typeof s === "string" ? s : s.label;
+                    return (
+                      <option key={value} value={value}>{label}</option>
+                    );
+                  })}
+                </select>
+
+                <div style={{ width: 1, height: 20, background: PALETTE.border }} />
+
+                <div className="flex gap-[5px] flex-wrap flex-1">
+                  {(KPI_CHIPS[activePrincipleId] || []).map((chip) => {
+                    const on = activeKpiUi.includes(chip);
+                    return (
+                      <button
+                        key={chip}
+                        onClick={() => toggleKpiUi(chip)}
+                        className="text-xs px-[11px] py-1 rounded-full border"
+                        style={{
+                          borderColor: on ? activeBlue : PALETTE.border,
+                          background: on ? PALETTE.activeBlueLight : "#fff",
+                          color: on ? activeBlue : PALETTE.text2,
+                          fontWeight: on ? 600 : 400,
+                        }}
+                      >
+                        {chip}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  onClick={resetControlZoneUi}
+                  className="text-[12.5px] px-[13px] py-[5px] rounded-md bg-white"
+                  style={{ border: `1px solid ${PALETTE.border}`, color: PALETTE.text2 }}
+                >
+                  Reset
+                </button>
+              </div>
+            </div>
+          ) : null}
+
           <div className="p-6">
             {selectedQuestion ? (
               // Render handler-provided page
               <>
                 {handlerLoading && (
-                  <div className="p-6 bg-white border rounded shadow-sm text-center">
+                  <div className="p-6 bg-white border rounded text-center" style={{ borderColor: PALETTE.border }}>
                     Loading question {selectedQuestion}...
                   </div>
                 )}
 
                 {handlerError && (
-                  <div className="p-6 bg-white border rounded shadow-sm text-red-600">
+                  <div className="p-6 bg-white border rounded text-red-600" style={{ borderColor: PALETTE.border }}>
                     {handlerError}
                   </div>
                 )}
@@ -361,6 +708,12 @@ HANDLERS[selectedQuestion].QuestionPage
                         data={handlerData}
                         filters={filters}
                         setFilters={setFilters}
+                        sector={sectorUi}
+                        viewMode={viewModeUi}
+                        activeKpis={activeKpiUi}
+                        setSector={setSectorUi}
+                        setViewMode={setViewModeUi}
+                        setActiveKpis={setActiveKpiUi}
                         onBack={backToSectionB}
                         onGoToQuestion={goToQuestion}
                         handlersRegistry={HANDLERS}
@@ -370,7 +723,7 @@ HANDLERS[selectedQuestion].QuestionPage
                 )}
 
                 {!handlerLoading && !handlerError && !HANDLERS[selectedQuestion] && (
-                  <div className="p-6 bg-white border rounded shadow-sm">
+                  <div className="p-6 bg-white border rounded" style={{ borderColor: PALETTE.border }}>
                     No handler implemented yet for Q{selectedQuestion}. Create <code>./handlers/Q{selectedQuestion}Handler.js</code> and export <code>loadData</code> and <code>QuestionPage</code>.
                   </div>
                 )}
@@ -379,57 +732,66 @@ HANDLERS[selectedQuestion].QuestionPage
               // Normal non-question pages (overview, gd-a, gd-b, P*)
               <>
                 {selected === "overview" && (
-                  <div className="grid grid-cols-4 gap-4 mb-6">
-                    <div className="p-4 bg-white rounded shadow-sm border border-slate-100">
-                      <div className="text-sm text-slate-500">Companies</div>
-                      <div className="text-2xl font-semibold">—</div>
+                  <div className="space-y-[18px]">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-[14px]">
+                      {renderStatCard("Listed Companies", "1,115", "NSE / BSE listed")}
+                      {renderStatCard("Sectors Covered", "21", "BRSR classification", "#059669")}
+                      {renderStatCard("Total Filings", "3,280", "across filing years", "#e76f51")}
+                      {renderStatCard("Social Principles", "4", "P3 - P5 - P8 - P9", activeBlue)}
                     </div>
-                    <div className="p-4 bg-white rounded shadow-sm border border-slate-100">
-                      <div className="text-sm text-slate-500">Years</div>
-                      <div className="text-2xl font-semibold">—</div>
+
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                      {renderPlaceholderPanel("Filing Coverage by Year", 240)}
+                      {renderPlaceholderPanel("Sector Distribution of Companies", 240)}
                     </div>
-                    <div className="p-4 bg-white rounded shadow-sm border border-slate-100">
-                      <div className="text-sm text-slate-500">Responses</div>
-                      <div className="text-2xl font-semibold">—</div>
-                    </div>
-                    <div className="p-4 bg-white rounded shadow-sm border border-slate-100">
-                      <div className="text-sm text-slate-500">Sectors</div>
-                      <div className="text-2xl font-semibold">—</div>
-                    </div>
+
+                    {renderPlaceholderPanel("Cross-Principle Disclosure Completeness", 200)}
                   </div>
                 )}
 
                 {selected === "gd-b" && (
-                  <div className="space-y-8">
+                  <div className="space-y-6">
                     <div>
-                      <h2 className="text-sm font-semibold text-slate-700 mb-3">Policy and management processes</h2>
-                      <div className="space-y-3">
+                      <div className="text-[11.5px] font-bold uppercase tracking-[0.07em] mb-[10px]" style={{ color: PALETTE.text3 }}>Policy and management processes</div>
+                      <div className="space-y-[6px]">
                         {GD_QUESTIONS.filter((q) => q.group === "Policy and management processes").map((q) => (
                           <div
                             key={q.id}
                             onClick={() => goToQuestion(q.id)}
-                            className="w-full rounded-lg p-4 cursor-pointer flex items-center justify-between hover:shadow-md hover:bg-slate-50 transition"
-                            style={{ background: "#ffffff", border: "1px solid transparent" }}
+                            className="w-full rounded-lg p-[13px_18px] cursor-pointer flex items-center justify-between transition"
+                            style={{ background: "#ffffff", border: `1px solid ${PALETTE.border}` }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.06)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.boxShadow = "none";
+                            }}
                           >
-                            <div className="text-sm text-slate-800 leading-snug">{`${q.id}. ${q.title}`}</div>
-                            <div className="text-slate-400 text-lg">›</div>
+                            <div className="text-[13px] leading-snug" style={{ color: PALETTE.text1 }}><strong style={{ color: activeBlue }}>Q{q.id}.</strong> {q.title}</div>
+                            <div className="text-lg" style={{ color: PALETTE.text3 }}>›</div>
                           </div>
                         ))}
                       </div>
                     </div>
 
                     <div>
-                      <h2 className="text-sm font-semibold text-slate-700 mb-3">Governance, leadership and oversight</h2>
-                      <div className="space-y-3">
+                      <div className="text-[11.5px] font-bold uppercase tracking-[0.07em] mb-[10px]" style={{ color: PALETTE.text3 }}>Governance, leadership and oversight</div>
+                      <div className="space-y-[6px]">
                         {GD_QUESTIONS.filter((q) => q.group === "Governance, leadership and oversight").map((q) => (
                           <div
                             key={q.id}
                             onClick={() => goToQuestion(q.id)}
-                            className="w-full rounded-lg p-4 cursor-pointer flex items-center justify-between hover:shadow-md hover:bg-slate-50 transition"
-                            style={{ background: "#ffffff", border: "1px solid transparent" }}
+                            className="w-full rounded-lg p-[13px_18px] cursor-pointer flex items-center justify-between transition"
+                            style={{ background: "#ffffff", border: `1px solid ${PALETTE.border}` }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.06)";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.boxShadow = "none";
+                            }}
                           >
-                            <div className="text-sm text-slate-800 leading-snug">{`${q.id}. ${q.title}`}</div>
-                            <div className="text-slate-400 text-lg">›</div>
+                            <div className="text-[13px] leading-snug" style={{ color: PALETTE.text1 }}><strong style={{ color: activeBlue }}>Q{q.id}.</strong> {q.title}</div>
+                            <div className="text-lg" style={{ color: PALETTE.text3 }}>›</div>
                           </div>
                         ))}
                       </div>
@@ -438,11 +800,18 @@ HANDLERS[selectedQuestion].QuestionPage
                 )}
 
                 {selected === "gd-a" && (
-                  <div className="space-y-6">
-                    <div className="p-4 bg-white rounded shadow-sm border border-slate-100">
-                      <div className="text-sm text-slate-700 font-semibold mb-2">Section A — General Disclosures (placeholder)</div>
-                      <div className="text-sm text-slate-600">This page is intentionally left as a structural placeholder. We'll add the A1–A7 items from the BRSR PDF here when you're ready.</div>
+                  <div className="space-y-[18px]">
+                    <div className="bg-white rounded-lg border p-[20px_24px]" style={{ borderColor: PALETTE.border }}>
+                      <div className="text-sm font-semibold mb-2" style={{ color: PALETTE.text1 }}>Section A — General Disclosures (placeholder)</div>
+                      <div className="text-[13px]" style={{ color: PALETTE.text2 }}>This page is intentionally left as a structural placeholder. We'll add the A1–A7 items from the BRSR PDF here when you're ready.</div>
                     </div>
+
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                      {renderPlaceholderPanel("A-Section Coverage Summary", 240)}
+                      {renderPlaceholderPanel("Entity Profile Distribution", 240)}
+                    </div>
+
+                    {renderPlaceholderPanel("General Disclosures Table", 200)}
                   </div>
                 )}
 
@@ -459,7 +828,7 @@ HANDLERS[selectedQuestion].QuestionPage
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        <div className="p-4 bg-white rounded shadow-sm border border-slate-100">
+                        <div className="p-4 bg-white rounded border" style={{ borderColor: PALETTE.border }}>
                           <div className="text-sm text-slate-500 mb-2">Summary</div>
                           <div className="text-lg font-semibold">{PRINCIPLES.find((p) => p.id === selectedPrinciple)?.short}</div>
                           <div className="text-sm text-slate-600 mt-1">{PRINCIPLES.find((p) => p.id === selectedPrinciple)?.name}</div>
