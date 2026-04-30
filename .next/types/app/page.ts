@@ -1,4 +1,4 @@
-// File: /Users/tishabhavsar/Downloads/ILGC Sem_4/BRSR-Dashboard2/app/page.js
+// File: /Users/niyatisingh/Desktop/Sem-6/ILGC-6/New Work/Principle_5/BRSR-Dashboard/app/page.js
 import * as entry from '../../../app/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
