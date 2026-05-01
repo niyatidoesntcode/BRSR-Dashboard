@@ -30,6 +30,9 @@ import * as P5Q1Handler from "./questionHandlers/P5Q1Handler";
 import * as P5Q2Handler from "./questionHandlers/P5Q2Handler";
 import * as P3QuantHandler from "./questionHandlers/P3QuantHandler";
 import * as P3QuantTrialHandler from "./questionHandlers/P3QuantTrialHandler";
+import * as P5QuantHandler from "./questionHandlers/P5QuantHandler";
+import * as P8QuantHandler from "./questionHandlers/P8QuantHandler";
+import * as P9QuantHandler from "./questionHandlers/P9QuantHandler";
 
 // Build a registry mapping qids -> handler module
 const HANDLERS = {
@@ -52,6 +55,9 @@ const HANDLERS = {
   "P5_Q1": P5Q1Handler,
   "P5_Q2": P5Q2Handler,
   "P3_Quant": P3QuantHandler,
+  "P5_Quant": P5QuantHandler,
+  "P8_Quant": P8QuantHandler,
+  "P9_Quant": P9QuantHandler,
   "P3_Quant_Trial": P3QuantTrialHandler,
 };
 
@@ -204,13 +210,16 @@ export default function DashboardPrototype() {
   function goToQuestion(qid) {
     setSelectedQuestion(qid);
     setSelected("gd-b");
-    if (qid === "P3_Quant") {
-      setSelectedPrinciple("P3");
-      setExpandedP("P3");
+    if (typeof qid === "string" && qid.endsWith("_Quant")) {
+      const pid = qid.split("_")[0];
+      setSelectedPrinciple(pid);
+      setExpandedP(pid);
       setActiveTopTab("Quant KPIs");
       setViewModeUi("Sector");
       setSectorUi("All Sectors");
-      setActiveKpiUi(KPI_CHIPS.P3);
+      // Let the quant handler default to all KPIs for that principle,
+      // so the first view is composite-by-sector.
+      setActiveKpiUi([]);
     }
     // reset handler states; loader will run via useEffect
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -280,8 +289,9 @@ export default function DashboardPrototype() {
   function selectPrincipleQuant(pid) {
     setExpandedP(pid);
     setActiveTopTab("Quant KPIs");
-    if (pid === "P3") {
-      goToQuestion("P3_Quant");
+    const quantQid = `${pid}_Quant`;
+    if (HANDLERS[quantQid]) {
+      goToQuestion(quantQid);
       return;
     }
     navTo(pid);
@@ -584,7 +594,7 @@ export default function DashboardPrototype() {
             )}
           </div>
 
-          {isPrincipleView && selectedQuestion !== "P3_Quant" ? (
+          {isPrincipleView && !(typeof selectedQuestion === "string" && selectedQuestion.endsWith("_Quant")) ? (
             <div className="sticky top-0 z-30 bg-white border-b" style={{ borderColor: "#d4dce8" }}>
               <div className="flex border-b pl-[6px]" style={{ borderColor: PALETTE.border }}>
                 {["Quant KPIs", "SRS", "Combined"].map((tab) => {

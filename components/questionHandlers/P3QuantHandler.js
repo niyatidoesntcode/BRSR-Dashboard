@@ -41,11 +41,11 @@ const P3_KPIS = [
 ];
 
 const FLAG_DEFS = [
-  { key: "fatality_flag", label: "Workplace Fatality", color: "#ff5e5e" },
-  { key: "flag_A", label: "Child/Forced Labour", color: "#c0392b" },
-  { key: "flag_B", label: "Below Min. Wage", color: "#f5a623" },
-  { key: "flag_C", label: "Forced Recall", color: "#9b59b6" },
-  { key: "flag_D", label: "Data Breach", color: "#3498db" },
+  { key: "fatality_flag", label: "Workplace Fatality", color: "#ff5e5e", abbr: "⚑" },
+  { key: "flag_A", label: "Child/Forced Labour", color: "#c0392b", abbr: "A" },
+  { key: "flag_B", label: "Below Min. Wage", color: "#f5a623", abbr: "B" },
+  { key: "flag_C", label: "Forced Recall", color: "#9b59b6", abbr: "C" },
+  { key: "flag_D", label: "Data Breach", color: "#3498db", abbr: "D" },
 ];
 
 const KPI_BY_NAME = Object.fromEntries(P3_KPIS.map((kpi) => [kpi.name, kpi]));
@@ -87,6 +87,16 @@ function safeNumber(value) {
   if (value === null || value === undefined || value === "") return null;
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
+}
+
+function rowHasAnyFlag(row, flags) {
+  if (!flags || !flags.length) return false;
+  return flags.some((flag) => Boolean(row[flag.key]));
+}
+
+function rowFlagTokens(row, flags) {
+  if (!flags || !flags.length) return "";
+  return flags.filter((flag) => row[flag.key]).map((flag) => flag.abbr || flag.label).join(" ");
 }
 
 function riskTier(score) {
@@ -384,11 +394,11 @@ function GroupedFlagBars({ rows, mode }) {
   );
 }
 
-function SectorStatCards({ rows }) {
+function SectorStatCards({ rows, effectiveKpis = P3_KPIS, effectiveFlags = FLAG_DEFS, principleName = "P3" }) {
   const totalCompanies = rows.length;
   const avgComposite = rows.length > 0 ? rows.filter((row) => row.composite !== null).reduce((sum, row) => sum + row.composite, 0) / rows.filter((row) => row.composite !== null).length : null;
-  const totalFatalities = rows.filter((row) => row.fatality_flag).length;
-  const means = P3_KPIS.map((kpi) => {
+  const totalFlagged = rows.filter((row) => rowHasAnyFlag(row, effectiveFlags)).length;
+  const means = effectiveKpis.map((kpi) => {
     const values = rows.map((row) => row[kpi.key]).filter((value) => value !== null);
     const mean = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
     return { ...kpi, mean };
@@ -398,8 +408,8 @@ function SectorStatCards({ rows }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
       <StatCard label="Total companies in selected sectors" value={totalCompanies.toLocaleString()} sublabel="Top 8 sectors only" color="#176fb3" />
-      <StatCard label="Avg P3 composite" value={fmtNumber(avgComposite, 1)} sublabel={`Risk tier: ${riskTier(avgComposite) === "none" ? "—" : riskTier(avgComposite)}`} color={tierColor(avgComposite)} />
-      <StatCard label="Total fatality flags" value={totalFatalities.toLocaleString()} sublabel="selected sectors" color="#ff5e5e" />
+      <StatCard label={`Avg ${principleName} composite`} value={fmtNumber(avgComposite, 1)} sublabel={`Risk tier: ${riskTier(avgComposite) === "none" ? "—" : riskTier(avgComposite)}`} color={tierColor(avgComposite)} />
+      <StatCard label="Total flagged companies" value={effectiveFlags.length ? totalFlagged.toLocaleString() : "—"} sublabel={effectiveFlags.length ? "selected sectors" : "No flags configured"} color="#ff5e5e" />
       <StatCard label="Highest risk KPI" value={highestRisk ? highestRisk.name : "—"} sublabel={highestRisk ? `mean score ${highestRisk.mean.toFixed(1)}` : ""} color={highestRisk ? highestRisk.color : "#94a3b8"} />
     </div>
   );
@@ -425,9 +435,10 @@ function Box({ cx, stats, color, boxW, padTop, plotHeight }) {
   );
 }
 
-function SectorBoxPlots({ rows, activeKpis, selectedSectors }) {
-  const showComposite = activeKpis.length === P3_KPIS.length && selectedSectors.includes("All Sectors");
-  const visibleKpis = showComposite ? P3_KPIS : P3_KPIS.filter((kpi) => activeKpis.includes(kpi.name));
+function SectorBoxPlots({ rows, activeKpis, selectedSectors, effectiveKpis = P3_KPIS, effectiveFlags = FLAG_DEFS, principleName = "P3" }) {
+  const showComposite = activeKpis.length === effectiveKpis.length && selectedSectors.includes("All Sectors");
+  const visibleKpis = showComposite ? effectiveKpis : effectiveKpis.filter((kpi) => activeKpis.includes(kpi.name));
+  const highlightFlag = effectiveFlags[0] || null;
   const sectors = sectorOrderByMedian(rows, "composite");
   const [viewportWidth, setViewportWidth] = useState(1280);
 
@@ -458,8 +469,8 @@ function SectorBoxPlots({ rows, activeKpis, selectedSectors }) {
 
   return (
     <Panel
-      title={showComposite ? "P3 Composite Risk Score by Sector" : "KPI Risk Scores by Sector"}
-      subtitle={showComposite ? "Composite · box = IQR · line = median · dots = fatality flagged" : "box = IQR · line = median · select chips above to filter KPIs"}
+      title={showComposite ? `${principleName} Composite Risk Score by Sector` : "KPI Risk Scores by Sector"}
+      subtitle={showComposite ? `Composite · box = IQR · line = median${highlightFlag ? ` · dots = ${highlightFlag.label.toLowerCase()}` : ""}` : "box = IQR · line = median · select chips above to filter KPIs"}
     >
       <div className="overflow-x-auto px-4 pb-4 pt-1">
         <svg viewBox={`0 0 ${width} ${height}`} width={Math.max(width, targetPlotWidth)} height={height} style={{ display: "block" }}>
@@ -478,9 +489,6 @@ function SectorBoxPlots({ rows, activeKpis, selectedSectors }) {
           <rect x={pad.left} y={scaleY(100, plotHeight, pad.top)} width={width - pad.left - pad.right} height={scaleY(65, plotHeight, pad.top) - scaleY(100, plotHeight, pad.top)} fill="#fee2e2" fillOpacity="0.12" />
           <rect x={pad.left} y={scaleY(65, plotHeight, pad.top)} width={width - pad.left - pad.right} height={scaleY(35, plotHeight, pad.top) - scaleY(65, plotHeight, pad.top)} fill="#fef3c7" fillOpacity="0.16" />
           <line x1={pad.left} y1={scaleY(50, plotHeight, pad.top)} x2={width - pad.right} y2={scaleY(50, plotHeight, pad.top)} stroke="#94a3b8" strokeDasharray="4 3" strokeWidth="0.8" />
-          <text x={width / 2} y={scaleY(50, plotHeight, pad.top) - 5} textAnchor="middle" fontSize="8.5" fill="#94a3b8">
-            expected avg
-          </text>
 
           {sectors.map((sector, sectorIndex) => {
             const sectorRows = sectorMap.get(sector) || [];
@@ -489,12 +497,12 @@ function SectorBoxPlots({ rows, activeKpis, selectedSectors }) {
             if (showComposite) {
               const stats = boxStats(sectorRows.map((row) => row.composite));
               const color = RISK_COLOR[riskTier(stats?.median ?? null)];
-              const fatalRows = sectorRows.filter((row) => row.fatality_flag);
-              const isEnergy = sector === "Energy";
+              const flaggedRows = highlightFlag ? sectorRows.filter((row) => row[highlightFlag.key]) : [];
+              const isEnergy = sector === "Energy" && highlightFlag?.key === "fatality_flag";
               return (
                 <g key={sector}>
                   <Box cx={centerX} stats={stats} color={color} boxW={boxWidth} padTop={pad.top} plotHeight={plotHeight} />
-                  {fatalRows.map((row, idx) => (
+                  {flaggedRows.map((row, idx) => (
                     <circle
                       key={`${row.name}-${idx}`}
                       cx={centerX + hashJitter(row.name, boxWidth * 2)}
@@ -541,7 +549,7 @@ function SectorBoxPlots({ rows, activeKpis, selectedSectors }) {
           })}
 
           <text transform={`rotate(-90)`} x={-(pad.top + plotHeight / 2)} y={12} textAnchor="middle" fontSize="9" fill="#94a3b8">
-            P3 Composite Risk Score (higher = riskier)
+            {`${principleName} Composite Risk Score (higher = riskier)`}
           </text>
 
           {!showComposite ? (
@@ -562,8 +570,8 @@ function SectorBoxPlots({ rows, activeKpis, selectedSectors }) {
   );
 }
 
-function KpiIqrProfile({ rows, activeKpis }) {
-  const visibleKpis = activeKpis.length === P3_KPIS.length ? P3_KPIS : P3_KPIS.filter((kpi) => activeKpis.includes(kpi.name));
+function KpiIqrProfile({ rows, activeKpis, effectiveKpis = P3_KPIS }) {
+  const visibleKpis = activeKpis.length === effectiveKpis.length ? effectiveKpis : effectiveKpis.filter((kpi) => activeKpis.includes(kpi.name));
   const [hovered, setHovered] = useState(null);
   const rowHeight = 40;
   const padTop = 32;
@@ -590,9 +598,6 @@ function KpiIqrProfile({ rows, activeKpis }) {
             </text>
           ))}
           <line x1={tx(50)} y1={padTop - 2} x2={tx(50)} y2={svgHeight - padBottom + 2} stroke="#94a3b8" strokeDasharray="3 2" strokeWidth="0.8" />
-          <text x={tx(50)} y={svgHeight - 2} textAnchor="middle" fontSize="7.5" fill="#94a3b8">
-            expected avg
-          </text>
           <rect x={trackX} y={padTop - 2} width={trackWidth * 0.35} height={svgHeight - padTop - padBottom + 4} fill="#d1fae5" fillOpacity="0.25" />
           <rect x={tx(35)} y={padTop - 2} width={trackWidth * 0.3} height={svgHeight - padTop - padBottom + 4} fill="#fef3c7" fillOpacity="0.35" />
           <rect x={tx(65)} y={padTop - 2} width={trackWidth * 0.35} height={svgHeight - padTop - padBottom + 4} fill="#fee2e2" fillOpacity="0.25" />
@@ -671,8 +676,19 @@ function KpiIqrProfile({ rows, activeKpis }) {
   );
 }
 
-function FlagCountChart({ rows }) {
-  const legendItems = FLAG_DEFS.map((flag) => ({ label: flag.label, color: flag.color }));
+function FlagCountChart({ rows, effectiveFlags = FLAG_DEFS }) {
+  const legendItems = effectiveFlags.map((flag) => ({ label: flag.label, color: flag.color }));
+
+  if (!effectiveFlags.length) {
+    return (
+      <Panel title="Flag Distribution by Sector" subtitle="No flags configured for this principle">
+        <div className="px-4 pb-4 pt-2 text-[12px]" style={{ color: "#94a3b8" }}>
+          This principle does not use flag-based sector charts.
+        </div>
+      </Panel>
+    );
+  }
+
   const sectorMap = new Map();
   rows.forEach((row) => {
     if (!sectorMap.has(row.short)) sectorMap.set(row.short, []);
@@ -680,9 +696,9 @@ function FlagCountChart({ rows }) {
   });
 
   const sectorData = [...sectorMap.entries()].map(([sector, sectorRows]) => {
-    const counts = Object.fromEntries(FLAG_DEFS.map((flag) => [flag.key, 0]));
+    const counts = Object.fromEntries(effectiveFlags.map((flag) => [flag.key, 0]));
     sectorRows.forEach((row) => {
-      FLAG_DEFS.forEach((flag) => {
+      effectiveFlags.forEach((flag) => {
         if (row[flag.key]) counts[flag.key] += 1;
       });
     });
@@ -692,7 +708,7 @@ function FlagCountChart({ rows }) {
       totalFlags: Object.values(counts).reduce((sum, value) => sum + value, 0),
       counts,
       rates: Object.fromEntries(
-        FLAG_DEFS.map((flag) => [flag.key, sectorRows.length > 0 ? (counts[flag.key] / sectorRows.length) * 100 : 0])
+        effectiveFlags.map((flag) => [flag.key, sectorRows.length > 0 ? (counts[flag.key] / sectorRows.length) * 100 : 0])
       ),
     };
   });
@@ -720,7 +736,7 @@ function FlagCountChart({ rows }) {
     const plotHeight = chartHeight - padTop - padBottom;
     const maxValue = Math.max(
       1,
-      ...dataBySector.flatMap((entry) => FLAG_DEFS.map((flag) => (mode === "abs" ? entry.counts[flag.key] : entry.rates[flag.key])))
+      ...dataBySector.flatMap((entry) => effectiveFlags.map((flag) => (mode === "abs" ? entry.counts[flag.key] : entry.rates[flag.key])))
     );
     const yTicks = mode === "abs" ? [0, Math.ceil(maxValue / 4), Math.ceil(maxValue / 2), Math.ceil((maxValue * 3) / 4), Math.ceil(maxValue)] : [0, 25, 50, 75, 100];
     const scale = (value) => ((mode === "abs" ? value / maxValue : value / 100) * plotHeight);
@@ -749,10 +765,10 @@ function FlagCountChart({ rows }) {
 
             {dataBySector.map((entry, index) => {
               const groupX = padLeft + index * sectorSlot + 8;
-              const xCenter = groupX + (FLAG_DEFS.length * (barWidth + groupGap)) / 2;
+              const xCenter = groupX + (effectiveFlags.length * (barWidth + groupGap)) / 2;
               return (
                 <g key={entry.sector}>
-                  {FLAG_DEFS.map((flag, flagIndex) => {
+                  {effectiveFlags.map((flag, flagIndex) => {
                     const value = mode === "abs" ? entry.counts[flag.key] : entry.rates[flag.key];
                     const barHeight = scale(value);
                     const x = groupX + flagIndex * (barWidth + groupGap);
@@ -806,10 +822,11 @@ function FlagCountChart({ rows }) {
   );
 }
 
-function CompanyHistogram({ rows, sectorLabel }) {
+function CompanyHistogram({ rows, sectorLabel, principleName = "P3", effectiveFlags = FLAG_DEFS }) {
   const [mode, setMode] = useState("all");
   const valid = rows.filter((row) => row.composite !== null).sort((a, b) => b.composite - a.composite);
-  const flagged = valid.filter((row) => row.fatality_flag);
+  const highlightFlag = effectiveFlags[0] || null;
+  const flagged = highlightFlag ? valid.filter((row) => row[highlightFlag.key]) : [];
 
   const bins = Array.from({ length: 20 }, (_, index) => {
     const lo = index * 5;
@@ -849,8 +866,8 @@ function CompanyHistogram({ rows, sectorLabel }) {
 
     return (
       <Panel
-        title="P3 Composite Score Distribution"
-        subtitle={sectorLabel ? `${sectorLabel} sector selection` : "bars = ranked scores · flagged rows are hatched"}
+        title={`${principleName} Composite Score Distribution`}
+        subtitle={sectorLabel ? `${sectorLabel} sector selection` : `bars = ranked scores${highlightFlag ? ` · ${highlightFlag.label.toLowerCase()} rows are hatched` : ""}`}
         headerRight={
           <div className="flex gap-2 rounded-full p-0.5" style={{ background: "#e8ecf1" }}>
             {["all", "top20", "top40"].map((value) => (
@@ -892,11 +909,11 @@ function CompanyHistogram({ rows, sectorLabel }) {
                     y={barY}
                     width={Math.max(2, width)}
                     height={barHeight}
-                    fill={row.fatality_flag ? `url(#hatch-${index})` : RISK_COLOR[barFill]}
-                    fillOpacity={row.fatality_flag ? 1 : 0.6}
+                    fill={highlightFlag && row[highlightFlag.key] ? `url(#hatch-${index})` : RISK_COLOR[barFill]}
+                    fillOpacity={highlightFlag && row[highlightFlag.key] ? 1 : 0.6}
                     rx="2"
                   />
-                  {row.fatality_flag ? <text x={barX + width + 4} y={barY + barHeight - 4} fontSize="9" fill="#ff5e5e">⚑</text> : null}
+                  {highlightFlag && row[highlightFlag.key] ? <text x={barX + width + 4} y={barY + barHeight - 4} fontSize="9" fill="#ff5e5e">{highlightFlag.abbr || "⚑"}</text> : null}
                   <text x={barX + width + 14} y={barY + barHeight - 4} fontSize="9" fill="#64748b">
                     {row.composite.toFixed(1)}
                   </text>
@@ -911,8 +928,8 @@ function CompanyHistogram({ rows, sectorLabel }) {
 
   return (
     <Panel
-      title="P3 Composite Score Distribution"
-      subtitle="bars = histogram · curve = KDE · ticks = fatality flagged"
+      title={`${principleName} Composite Score Distribution`}
+      subtitle={`bars = histogram · curve = KDE${highlightFlag ? ` · ticks = ${highlightFlag.label.toLowerCase()}` : ""}`}
       headerRight={
         <div className="flex gap-2 rounded-full p-0.5" style={{ background: "#e8ecf1" }}>
           {["all", "top20", "top40"].map((value) => (
@@ -971,21 +988,21 @@ function CompanyHistogram({ rows, sectorLabel }) {
             </g>
           ))}
           <text x={pad.left + plotWidth / 2} y={svgHeight - 2} textAnchor="middle" fontSize="9" fill="#94a3b8">
-            P3 Composite Risk Score (higher = riskier)
+            {`${principleName} Composite Risk Score (higher = riskier)`}
           </text>
         </svg>
       </div>
-      {flagged.length > 0 ? (
+      {flagged.length > 0 && highlightFlag ? (
         <div className="px-4 pb-4 text-[11px]" style={{ color: "#ff5e5e" }}>
-          ⚑ {flagged.length} company{flagged.length === 1 ? "" : "ies"} with workplace fatality flag shown as red ticks
+          {highlightFlag.abbr || "⚑"} {flagged.length} company{flagged.length === 1 ? "" : "ies"} with {highlightFlag.label.toLowerCase()} shown as red ticks
         </div>
       ) : null}
     </Panel>
   );
 }
 
-function RadarChart({ company, sectorRows, activeKpis }) {
-  const visibleKpis = activeKpis.length === P3_KPIS.length ? P3_KPIS : P3_KPIS.filter((kpi) => activeKpis.includes(kpi.name));
+function RadarChart({ company, sectorRows, activeKpis, effectiveKpis = P3_KPIS }) {
+  const visibleKpis = activeKpis.length === effectiveKpis.length ? effectiveKpis : effectiveKpis.filter((kpi) => activeKpis.includes(kpi.name));
 
   if (!company) {
     return (
@@ -1106,8 +1123,8 @@ function RadarChart({ company, sectorRows, activeKpis }) {
   );
 }
 
-function KpiContribBars({ company, sectorRows, activeKpis }) {
-  const visibleKpis = activeKpis.length === P3_KPIS.length ? P3_KPIS : P3_KPIS.filter((kpi) => activeKpis.includes(kpi.name));
+function KpiContribBars({ company, sectorRows, activeKpis, effectiveKpis = P3_KPIS }) {
+  const visibleKpis = activeKpis.length === effectiveKpis.length ? effectiveKpis : effectiveKpis.filter((kpi) => activeKpis.includes(kpi.name));
   const bars = visibleKpis
     .map((kpi) => {
       const companyValue = company[kpi.key];
@@ -1167,8 +1184,8 @@ function KpiContribBars({ company, sectorRows, activeKpis }) {
 
 const PAGE_SIZE = 25;
 
-function CompanyTable({ rows, activeKpis, onSelect, selectedCompany }) {
-  const visibleKpis = activeKpis.length === P3_KPIS.length ? P3_KPIS : P3_KPIS.filter((kpi) => activeKpis.includes(kpi.name));
+function CompanyTable({ rows, activeKpis, onSelect, selectedCompany, effectiveKpis = P3_KPIS, effectiveFlags = FLAG_DEFS, principleName = "P3" }) {
+  const visibleKpis = activeKpis.length === effectiveKpis.length ? effectiveKpis : effectiveKpis.filter((kpi) => activeKpis.includes(kpi.name));
   const [sortKey, setSortKey] = useState("composite");
   const [sortDir, setSortDir] = useState(-1);
   const [search, setSearch] = useState("");
@@ -1210,13 +1227,13 @@ function CompanyTable({ rows, activeKpis, onSelect, selectedCompany }) {
   }
 
   function exportCsv() {
-    const header = ["Company", "Sector", ...visibleKpis.map((kpi) => kpi.name), "P3 Composite", "Flags"];
+    const header = ["Company", "Sector", ...visibleKpis.map((kpi) => kpi.name), `${principleName} Composite`, "Flags"];
     const rowsOut = sorted.map((row) => [
       row.name,
       row.short,
       ...visibleKpis.map((kpi) => (row[kpi.key] !== null ? row[kpi.key].toFixed(1) : "")),
       row.composite !== null ? row.composite.toFixed(1) : "",
-      [row.fatality_flag && "⚑", row.flag_A && "A", row.flag_B && "B", row.flag_C && "C", row.flag_D && "D"].filter(Boolean).join(" "),
+      rowFlagTokens(row, effectiveFlags),
     ]);
 
     const csv = [header, ...rowsOut].map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(",")).join("\n");
@@ -1224,7 +1241,7 @@ function CompanyTable({ rows, activeKpis, onSelect, selectedCompany }) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "p3_companies.csv";
+    link.download = `${principleName.toLowerCase()}_companies.csv`;
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -1281,14 +1298,14 @@ function CompanyTable({ rows, activeKpis, onSelect, selectedCompany }) {
                   {kpi.name} {sortKey === kpi.key ? (sortDir === -1 ? "↓" : "↑") : null}
                 </th>
               ))}
-              <th style={headerCell("composite")} onClick={() => handleSort("composite")}>P3 Composite {sortKey === "composite" ? (sortDir === -1 ? "↓" : "↑") : null}</th>
+              <th style={headerCell("composite")} onClick={() => handleSort("composite")}>{`${principleName} Composite`} {sortKey === "composite" ? (sortDir === -1 ? "↓" : "↑") : null}</th>
               <th style={{ ...headerCell("flags"), cursor: "default" }}>Flags</th>
             </tr>
           </thead>
           <tbody>
             {pageRows.map((row) => {
               const isSelected = selectedCompany?.name === row.name;
-              const flags = [row.fatality_flag && "⚑", row.flag_A && "A", row.flag_B && "B", row.flag_C && "C", row.flag_D && "D"].filter(Boolean).join(" ");
+              const flags = rowFlagTokens(row, effectiveFlags);
               return (
                 <tr
                   key={row.name}
@@ -1371,23 +1388,23 @@ function CompanyTable({ rows, activeKpis, onSelect, selectedCompany }) {
   );
 }
 
-function SectorView({ rows, activeKpis, selectedSectors }) {
+function SectorView({ rows, activeKpis, selectedSectors, effectiveKpis = P3_KPIS, effectiveFlags = FLAG_DEFS, principleName = "P3" }) {
   return (
     <div className="space-y-4">
-      <SectorBoxPlots rows={rows} activeKpis={activeKpis} selectedSectors={selectedSectors} />
+      <SectorBoxPlots rows={rows} activeKpis={activeKpis} selectedSectors={selectedSectors} effectiveKpis={effectiveKpis} effectiveFlags={effectiveFlags} principleName={principleName} />
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-4">
         <div className="xl:col-span-2">
-          <KpiIqrProfile rows={rows} activeKpis={activeKpis} />
+          <KpiIqrProfile rows={rows} activeKpis={activeKpis} effectiveKpis={effectiveKpis} />
         </div>
         <div className="xl:col-span-3">
-          <FlagCountChart rows={rows} />
+          {effectiveFlags.length ? <FlagCountChart rows={rows} effectiveFlags={effectiveFlags} /> : null}
         </div>
       </div>
     </div>
   );
 }
 
-function CompanyView({ rows, activeKpis, selectedCompany, setSelectedCompany }) {
+function CompanyView({ rows, activeKpis, selectedCompany, setSelectedCompany, effectiveKpis = P3_KPIS, effectiveFlags = FLAG_DEFS, principleName = "P3" }) {
   const sectorRows = useMemo(() => {
     if (!selectedCompany) return rows;
     return rows.filter((row) => row.short === selectedCompany.short);
@@ -1397,26 +1414,30 @@ function CompanyView({ rows, activeKpis, selectedCompany, setSelectedCompany }) 
     <div className="space-y-4">
       <Panel title="Company Score Distribution" subtitle="Toggle All / Top 20 / Top 40 in the chart header">
         <div className="px-4 pb-4 pt-2">
-          <CompanyHistogram rows={rows} />
+          <CompanyHistogram rows={rows} principleName={principleName} effectiveFlags={effectiveFlags} />
         </div>
       </Panel>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        {selectedCompany ? <RadarChart company={selectedCompany} sectorRows={sectorRows} activeKpis={activeKpis} /> : <Panel title="KPI Risk Radar" subtitle="Select a company from the table below"><div className="px-4 pb-4 pt-2"><div className="flex min-h-[260px] items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 text-sm text-slate-400">Select a company from the table below</div></div></Panel>}
-        {selectedCompany ? <KpiContribBars company={selectedCompany} sectorRows={sectorRows} activeKpis={activeKpis} /> : <Panel title="KPI Score vs Sector" subtitle="Select a company to compare KPI contributions"><div className="px-4 pb-4 pt-2"><div className="flex min-h-[260px] items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 text-sm text-slate-400">Select a company from the table below</div></div></Panel>}
+        {selectedCompany ? <RadarChart company={selectedCompany} sectorRows={sectorRows} activeKpis={activeKpis} effectiveKpis={effectiveKpis} /> : <Panel title="KPI Risk Radar" subtitle="Select a company from the table below"><div className="px-4 pb-4 pt-2"><div className="flex min-h-[260px] items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 text-sm text-slate-400">Select a company from the table below</div></div></Panel>}
+        {selectedCompany ? <KpiContribBars company={selectedCompany} sectorRows={sectorRows} activeKpis={activeKpis} effectiveKpis={effectiveKpis} /> : <Panel title="KPI Score vs Sector" subtitle="Select a company to compare KPI contributions"><div className="px-4 pb-4 pt-2"><div className="flex min-h-[260px] items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 text-sm text-slate-400">Select a company from the table below</div></div></Panel>}
       </div>
 
-      <CompanyTable rows={rows} activeKpis={activeKpis} onSelect={setSelectedCompany} selectedCompany={selectedCompany} />
+      <CompanyTable rows={rows} activeKpis={activeKpis} onSelect={setSelectedCompany} selectedCompany={selectedCompany} effectiveKpis={effectiveKpis} effectiveFlags={effectiveFlags} principleName={principleName} />
     </div>
   );
 }
 
-export function QuestionPage({ data, sector, viewMode, activeKpis, setSector, setViewMode, setActiveKpis }) {
+export function QuestionPage({ data, sector, viewMode, activeKpis, setSector, setViewMode, setActiveKpis, __overrideKPIs, __overrideFlags, __principleId }) {
   const [selectedCompany, setSelectedCompany] = useState(null);
+
+  const effectiveKpis = (__overrideKPIs && __overrideKPIs.length) ? __overrideKPIs : P3_KPIS;
+  const effectiveFlags = Array.isArray(__overrideFlags) ? __overrideFlags : FLAG_DEFS;
+  const principleName = __principleId || "P3";
 
   const rows = data?.rows || [];
   const sectors = data?.sectors || ["All Sectors"];
-  const activeKpiNames = activeKpis && activeKpis.length ? activeKpis : P3_KPIS.map((kpi) => kpi.name);
+  const activeKpiNames = activeKpis && activeKpis.length ? activeKpis : effectiveKpis.map((kpi) => kpi.name);
   const selectedSectors = useMemo(() => {
     if (Array.isArray(sector)) {
       const cleaned = sector.filter((item) => item && item !== "All Sectors");
@@ -1447,14 +1468,14 @@ export function QuestionPage({ data, sector, viewMode, activeKpis, setSector, se
   if (!data || !rows.length) {
     return (
       <div className="rounded-lg border bg-white p-6 text-center" style={{ borderColor: "#e2e8f0" }}>
-        <div className="text-slate-500">Loading P3 quantitative data...</div>
-      </div>
+          <div className="text-slate-500">{`Loading ${principleName} quantitative data...`}</div>
+        </div>
     );
   }
 
   const avgComposite = visibleRows.filter((row) => row.composite !== null);
   const avgCompositeValue = avgComposite.length ? avgComposite.reduce((sum, row) => sum + row.composite, 0) / avgComposite.length : null;
-  const topKpi = P3_KPIS.map((kpi) => {
+  const topKpi = effectiveKpis.map((kpi) => {
     const values = visibleRows.map((row) => row[kpi.key]).filter((value) => value !== null);
     return {
       ...kpi,
@@ -1463,8 +1484,6 @@ export function QuestionPage({ data, sector, viewMode, activeKpis, setSector, se
   })
     .filter((kpi) => kpi.mean !== null)
     .sort((a, b) => b.mean - a.mean)[0];
-  const totalFatalities = visibleRows.filter((row) => row.fatality_flag).length;
-
   function setSectorSelection(nextSelection) {
     if (!nextSelection.length) {
       setSector?.(["All Sectors"]);
@@ -1491,7 +1510,7 @@ export function QuestionPage({ data, sector, viewMode, activeKpis, setSector, se
 
   function toggleKpi(name) {
     setActiveKpis?.((prev) => {
-      const current = prev && prev.length ? prev : P3_KPIS.map((kpi) => kpi.name);
+      const current = prev && prev.length ? prev : effectiveKpis.map((kpi) => kpi.name);
       if (current.includes(name)) {
         if (current.length === 1) return current;
         return current.filter((item) => item !== name);
@@ -1503,7 +1522,7 @@ export function QuestionPage({ data, sector, viewMode, activeKpis, setSector, se
   function resetControls() {
     setSector?.(["All Sectors"]);
     setViewMode?.("Sector");
-    setActiveKpis?.(P3_KPIS.map((kpi) => kpi.name));
+    setActiveKpis?.(effectiveKpis.map((kpi) => kpi.name));
   }
 
   const controls = (
@@ -1571,7 +1590,7 @@ export function QuestionPage({ data, sector, viewMode, activeKpis, setSector, se
         </div>
         <div style={{ width: 1, height: 20, background: "#e2e8f0" }} />
         <div className="flex gap-[5px] flex-wrap flex-1">
-          {P3_KPIS.map((kpi) => {
+          {effectiveKpis.map((kpi) => {
             const on = activeKpiNames.includes(kpi.name);
             return (
               <button
@@ -1600,11 +1619,11 @@ export function QuestionPage({ data, sector, viewMode, activeKpis, setSector, se
   return (
     <div className="space-y-4">
       {controls}
-      <SectorStatCards rows={visibleRows} />
+      <SectorStatCards rows={visibleRows} effectiveKpis={effectiveKpis} effectiveFlags={effectiveFlags} principleName={principleName} />
       {selectedViewMode === "Sector" ? (
-        <SectorView rows={visibleRows} activeKpis={activeKpiNames} selectedSectors={selectedSectors} />
+        <SectorView rows={visibleRows} activeKpis={activeKpiNames} selectedSectors={selectedSectors} effectiveKpis={effectiveKpis} effectiveFlags={effectiveFlags} principleName={principleName} />
       ) : (
-        <CompanyView rows={visibleRows} activeKpis={activeKpiNames} selectedCompany={selectedCompany} setSelectedCompany={setSelectedCompany} />
+        <CompanyView rows={visibleRows} activeKpis={activeKpiNames} selectedCompany={selectedCompany} setSelectedCompany={setSelectedCompany} effectiveKpis={effectiveKpis} effectiveFlags={effectiveFlags} principleName={principleName} />
       )}
     </div>
   );
