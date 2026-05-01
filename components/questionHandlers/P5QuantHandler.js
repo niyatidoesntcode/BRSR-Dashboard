@@ -2,10 +2,10 @@ import Papa from "papaparse";
 import React, { useEffect, useMemo, useState } from "react";
 
 const P5_KPIS = [
-  { key: "P5_1_score", name: "HR Policy", color: "#6c8fff", desc: "Policy coverage & quality" },
-  { key: "P5_2_score", name: "Complaints", color: "#ff8c5e", desc: "Complaints handling rate" },
-  { key: "P5_3_score", name: "Child Labour", color: "#3dd68c", desc: "Incidence of child labour issues" },
-  { key: "P5_4_score", name: "Wages", color: "#ff5e5e", desc: "Compliance with minimum wage" },
+  { key: "P5_1_score", name: "HR Training", color: "#6c8fff", desc: "% of total employees (permanent + non-permanent) trained on human rights policies. Higher score = lower coverage = more risk." },
+  { key: "P5_2_score", name: "Gender Pay Equity", color: "#ff8c5e", desc: "Ratio of female to male median wage for non-executive employees, capped at 1.0. Higher score = larger pay gap = more risk." },
+  { key: "P5_3_score", name: "HR Assessment", color: "#3dd68c", desc: "Average % of plants and offices formally assessed across five human rights dimensions: child labour, forced labour, sexual harassment, discrimination, and wages." },
+  { key: "P5_4_score", name: "POSH Rate", color: "#ff5e5e", desc: "POSH complaints filed per female employee. Higher rate = more incidents relative to female workforce size = more risk. Only computed where female workforce > 0." },
 ];
 
 const P5_FLAGS = [

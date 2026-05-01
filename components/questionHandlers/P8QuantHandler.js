@@ -2,8 +2,8 @@ import Papa from "papaparse";
 import React, { useEffect, useState } from "react";
 
 const P8_KPIS = [
-  { key: "P8_1_score", name: "CSR Spend", color: "#6c8fff", desc: "CSR spending as %" },
-  { key: "P8_2_score", name: "Projects", color: "#ff8c5e", desc: "Number of social projects" },
+  { key: "P8_1_score", name: "Inclusive Sourcing", color: "#6c8fff", desc: "Average of MSME sourcing % and local sourcing % — measures commitment to small producers and domestic supply chains. Higher score = less inclusive sourcing = more risk." },
+  { key: "P8_2_score", name: "CSR Intensity", color: "#ff8c5e", desc: "Total CSR spend divided by annual revenue — measures financial commitment to community development normalized for company size. CSR-exempt companies marked N/A." },
 ];
 
 const P8_FLAGS = [];

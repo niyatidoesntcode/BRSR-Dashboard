@@ -2,7 +2,7 @@ import Papa from "papaparse";
 import React, { useEffect, useState } from "react";
 
 const P9_KPIS = [
-  { key: "P9_1_score", name: "Complaints", color: "#6c8fff", desc: "Customer complaints & resolution" },
+  { key: "P9_1_score", name: "Product Transparency", color: "#6c8fff", desc: "Average % of product turnover carrying consumer information on environmental impact, recycling/disposal, and safe usage. Higher score = less transparency = more risk." },
 ];
 
 const P9_FLAGS = [

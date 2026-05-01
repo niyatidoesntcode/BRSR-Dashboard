@@ -1,5 +1,4 @@
 {
-  "/_not-found": "app/_not-found.js",
-  "/page": "app/page.js",
-  "/api/p3-quant/route": "app/api/p3-quant/route.js"
+  "/not-found": "app/not-found.js",
+  "/page": "app/page.js"
 }

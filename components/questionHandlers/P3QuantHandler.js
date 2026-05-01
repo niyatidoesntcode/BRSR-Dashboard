@@ -1431,6 +1431,8 @@ function CompanyView({ rows, activeKpis, selectedCompany, setSelectedCompany, ef
 
 export function QuestionPage({ data, sector, viewMode, activeKpis, setSector, setViewMode, setActiveKpis, __overrideKPIs, __overrideFlags, __principleId }) {
   const [selectedCompany, setSelectedCompany] = useState(null);
+  const [hoveredKpiName, setHoveredKpiName] = useState(null);
+  const hoverTimerRef = React.useRef(null);
 
   const effectiveKpis = (__overrideKPIs && __overrideKPIs.length) ? __overrideKPIs : P3_KPIS;
   const effectiveFlags = Array.isArray(__overrideFlags) ? __overrideFlags : FLAG_DEFS;
@@ -1526,6 +1528,32 @@ export function QuestionPage({ data, sector, viewMode, activeKpis, setSector, se
     setActiveKpis?.(effectiveKpis.map((kpi) => kpi.name));
   }
 
+  function clearHoverTimer() {
+    if (hoverTimerRef.current) {
+      window.clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+  }
+
+  function scheduleHoverKpi(kpiName) {
+    console.log('🔄 Hover scheduled for:', kpiName);
+    clearHoverTimer();
+    hoverTimerRef.current = window.setTimeout(() => {
+      console.log('✅ Showing tooltip for:', kpiName);
+      setHoveredKpiName(kpiName);
+    }, 800);
+  }
+
+  function hideHoverKpi() {
+    console.log('❌ Hiding tooltip');
+    clearHoverTimer();
+    setHoveredKpiName(null);
+  }
+
+  React.useEffect(() => {
+    return () => clearHoverTimer();
+  }, []);
+
   const controls = (
     <div className="sticky top-0 z-30 bg-white border-b" style={{ borderColor: "#d4dce8" }}>
       <div className="flex border-b pl-[6px]" style={{ borderColor: "#e2e8f0" }}>
@@ -1593,20 +1621,39 @@ export function QuestionPage({ data, sector, viewMode, activeKpis, setSector, se
         <div className="flex gap-[5px] flex-wrap flex-1">
           {effectiveKpis.map((kpi) => {
             const on = activeKpiNames.includes(kpi.name);
+            const isHovered = hoveredKpiName === kpi.name;
             return (
-              <button
-                key={kpi.name}
-                onClick={() => toggleKpi(kpi.name)}
-                className="text-xs px-[11px] py-1 rounded-full border"
-                style={{
-                  borderColor: on ? "#176fb3" : "#e2e8f0",
-                  background: on ? "#e8f2fb" : "#fff",
-                  color: on ? "#176fb3" : "#64748b",
-                  fontWeight: on ? 600 : 400,
-                }}
-              >
-                {kpi.name}
-              </button>
+              <div key={kpi.name} className="relative inline-block">
+                <button
+                  onClick={() => toggleKpi(kpi.name)}
+                  onMouseEnter={() => scheduleHoverKpi(kpi.name)}
+                  onMouseLeave={hideHoverKpi}
+                  onFocus={() => scheduleHoverKpi(kpi.name)}
+                  onBlur={hideHoverKpi}
+                  className="text-xs px-[11px] py-1 rounded-full border"
+                  style={{
+                    borderColor: on ? "#176fb3" : "#e2e8f0",
+                    background: on ? "#e8f2fb" : "#fff",
+                    color: on ? "#176fb3" : "#64748b",
+                    fontWeight: on ? 600 : 400,
+                  }}
+                >
+                  {kpi.name}
+                </button>
+                
+                {isHovered && kpi.desc ? (
+                  <div
+                    className="pointer-events-none absolute left-1/2 top-full z-50 mt-2 -translate-x-1/2 rounded-md border bg-white px-3 py-2 text-[12px] leading-5 shadow-sm"
+                    style={{
+                      maxWidth: 220,
+                      borderColor: "#e2e8f0",
+                      color: "#1a2333",
+                    }}
+                  >
+                    <div className="whitespace-pre-line">{kpi.desc}</div>
+                  </div>
+                ) : null}
+              </div>
             );
           })}
         </div>

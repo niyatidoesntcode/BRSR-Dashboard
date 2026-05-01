@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 
 // NOTE: handlers are expected at ./handlers/Q5Handler.js etc.
@@ -82,10 +82,27 @@ const PRINCIPLE_NAV = [
 ];
 
 const KPI_CHIPS = {
-  P3: ["Benefit Coverage", "Worker Gap", "Wellbeing Spend", "Safety (LTIFR)", "Training", "Career Dev"],
-  P5: ["HR Policy", "Complaints", "Child Labour", "Wages", "Training", "Grievances"],
-  P8: ["CSR Spend", "Projects", "Beneficiaries", "Procurement %", "Local Hiring", "Social Audit"],
-  P9: ["Complaints", "Resolution %", "Cybersecurity", "Product Safety", "NPS", "Recalls"],
+  P3: [
+    { name: "Benefit Coverage", description: "Average of health insurance and accident insurance coverage % for permanent employees. Higher score = lower coverage = more risk." },
+    { name: "Worker Gap", description: "Difference between employee benefit coverage and worker benefit coverage. A large gap means blue-collar workers are significantly worse protected than white-collar employees." },
+    { name: "Wellbeing Spend", description: "Company's wellbeing expenditure as a % of total revenue. Higher score = lower spend relative to size = more risk." },
+    { name: "Safety (LTIFR)", description: "Lost Time Injury Frequency Rate — workplace injuries per million person-hours worked. Higher score = more injuries = more risk. 62% of companies report zero LTIFR." },
+    { name: "Training", description: "Average of health & safety training coverage and skill upgradation training coverage across all employees. Higher score = lower training = more risk." },
+    { name: "Career Dev", description: "% of employees who received a formal performance or career development review. Higher score = fewer reviews = more risk." },
+  ],
+  P5: [
+    { name: "HR Training", description: "% of total employees (permanent + non-permanent) trained on human rights policies. Higher score = lower coverage = more risk." },
+    { name: "Gender Pay Equity", description: "Ratio of female to male median wage for non-executive employees, capped at 1.0. Higher score = larger pay gap = more risk." },
+    { name: "HR Assessment", description: "Average % of plants and offices formally assessed across five human rights dimensions: child labour, forced labour, sexual harassment, discrimination, and wages." },
+    { name: "POSH Rate", description: "POSH complaints filed per female employee. Higher rate = more incidents relative to female workforce size = more risk. Only computed where female workforce > 0." },
+  ],
+  P8: [
+    { name: "Inclusive Sourcing", description: "Average of MSME sourcing % and local sourcing % — measures commitment to small producers and domestic supply chains. Higher score = less inclusive sourcing = more risk." },
+    { name: "CSR Intensity", description: "Total CSR spend divided by annual revenue — measures financial commitment to community development normalized for company size. CSR-exempt companies marked N/A." },
+  ],
+  P9: [
+    { name: "Product Transparency", description: "Average % of product turnover carrying consumer information on environmental impact, recycling/disposal, and safe usage. Higher score = less transparency = more risk." },
+  ],
 };
 
 const PRINCIPLES = [
@@ -118,6 +135,8 @@ export default function DashboardPrototype() {
   const [viewModeUi, setViewModeUi] = useState("Sector");
   const [sectorUi, setSectorUi] = useState("All Sectors");
   const [activeKpiUi, setActiveKpiUi] = useState([]);
+  const [hoveredKpiChip, setHoveredKpiChip] = useState(null);
+  const hoverTimerRef = useRef(null);
 
   // QUESTION handler state
   const [selectedQuestion, setSelectedQuestion] = useState(null); // "5", "6", ...
@@ -150,6 +169,12 @@ export default function DashboardPrototype() {
       "--dashboard-font-family",
       "'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Arial"
     );
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      clearKpiHoverTimer();
+    };
   }, []);
 
   // When selectedQuestion changes, load data from its handler
@@ -284,6 +309,28 @@ export default function DashboardPrototype() {
     setViewModeUi("Sector");
     setSectorUi("All Sectors");
     setActiveKpiUi([]);
+  }
+
+  function clearKpiHoverTimer() {
+    if (hoverTimerRef.current) {
+      window.clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+  }
+
+  function scheduleKpiHover(chip) {
+    console.log('🔄 Hover scheduled for:', chip);
+    clearKpiHoverTimer();
+    hoverTimerRef.current = window.setTimeout(() => {
+      console.log('✅ Showing tooltip for:', chip);
+      setHoveredKpiChip(chip);
+    }, 800);
+  }
+
+  function hideKpiHover() {
+    console.log('❌ Hiding tooltip');
+    clearKpiHoverTimer();
+    setHoveredKpiChip(null);
   }
 
   function selectPrincipleQuant(pid) {
@@ -594,105 +641,7 @@ export default function DashboardPrototype() {
             )}
           </div>
 
-          {isPrincipleView && !(typeof selectedQuestion === "string" && selectedQuestion.endsWith("_Quant")) ? (
-            <div className="sticky top-0 z-30 bg-white border-b" style={{ borderColor: "#d4dce8" }}>
-              <div className="flex border-b pl-[6px]" style={{ borderColor: PALETTE.border }}>
-                {["Quant KPIs", "SRS", "Combined"].map((tab) => {
-                  const disabled = tab !== "Quant KPIs";
-                  const active = activeTopTab === tab;
-                  return (
-                    <button
-                      key={tab}
-                      onClick={() => {
-                        if (!disabled) setActiveTopTab(tab);
-                      }}
-                      className="px-[22px] py-[11px] text-[13.5px] flex items-center gap-[7px]"
-                      style={{
-                        color: disabled ? PALETTE.text3 : active ? activeBlue : PALETTE.text2,
-                        borderBottom: `2px solid ${active ? activeBlue : "transparent"}`,
-                        marginBottom: -1,
-                        fontWeight: active ? 600 : 400,
-                        cursor: disabled ? "not-allowed" : "pointer",
-                      }}
-                    >
-                      {tab}
-                      {disabled ? (
-                        <span className="text-[10px] px-[5px] py-[1px] rounded-full" style={{ color: PALETTE.text3, background: "#f1f5f9" }}>
-                          Soon
-                        </span>
-                      ) : null}
-                    </button>
-                  );
-                })}
-              </div>
 
-              <div className="flex items-center gap-[10px] px-5 py-[9px] flex-wrap" style={{ background: "#f9fafb", borderTop: `1px solid ${PALETTE.border}` }}>
-                <div className="flex rounded-full p-[2px] gap-[2px]" style={{ background: "#e8ecf1" }}>
-                  {["Sector", "Company"].map((mode) => (
-                    <button
-                      key={mode}
-                      onClick={() => setViewModeUi(mode)}
-                      className="px-[14px] py-1 rounded-full text-[12.5px]"
-                      style={{
-                        fontWeight: viewModeUi === mode ? 600 : 400,
-                        background: viewModeUi === mode ? "#fff" : "transparent",
-                        color: viewModeUi === mode ? PALETTE.text1 : PALETTE.text2,
-                        boxShadow: viewModeUi === mode ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
-                      }}
-                    >
-                      {mode}
-                    </button>
-                  ))}
-                </div>
-
-                <select
-                  value={sectorUi}
-                  onChange={(e) => setSectorUi(e.target.value)}
-                  className="text-[12.5px] px-[10px] py-[5px] rounded-md bg-white"
-                  style={{ border: `1px solid ${PALETTE.border}`, color: PALETTE.text1 }}
-                >
-                  {dynamicSectorOptions.map((s) => {
-                    const value = typeof s === "string" ? s : s.value;
-                    const label = typeof s === "string" ? s : s.label;
-                    return (
-                      <option key={value} value={value}>{label}</option>
-                    );
-                  })}
-                </select>
-
-                <div style={{ width: 1, height: 20, background: PALETTE.border }} />
-
-                <div className="flex gap-[5px] flex-wrap flex-1">
-                  {(KPI_CHIPS[activePrincipleId] || []).map((chip) => {
-                    const on = activeKpiUi.includes(chip);
-                    return (
-                      <button
-                        key={chip}
-                        onClick={() => toggleKpiUi(chip)}
-                        className="text-xs px-[11px] py-1 rounded-full border"
-                        style={{
-                          borderColor: on ? activeBlue : PALETTE.border,
-                          background: on ? PALETTE.activeBlueLight : "#fff",
-                          color: on ? activeBlue : PALETTE.text2,
-                          fontWeight: on ? 600 : 400,
-                        }}
-                      >
-                        {chip}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <button
-                  onClick={resetControlZoneUi}
-                  className="text-[12.5px] px-[13px] py-[5px] rounded-md bg-white"
-                  style={{ border: `1px solid ${PALETTE.border}`, color: PALETTE.text2 }}
-                >
-                  Reset
-                </button>
-              </div>
-            </div>
-          ) : null}
 
           <div className="p-6">
             {selectedQuestion ? (
