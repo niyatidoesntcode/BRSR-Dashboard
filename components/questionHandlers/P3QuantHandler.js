@@ -395,6 +395,7 @@ function GroupedFlagBars({ rows, mode }) {
 }
 
 function SectorStatCards({ rows, effectiveKpis = P3_KPIS, effectiveFlags = FLAG_DEFS, principleName = "P3" }) {
+  const hasFlags = effectiveFlags.length > 0;
   const totalCompanies = rows.length;
   const avgComposite = rows.length > 0 ? rows.filter((row) => row.composite !== null).reduce((sum, row) => sum + row.composite, 0) / rows.filter((row) => row.composite !== null).length : null;
   const totalFlagged = rows.filter((row) => rowHasAnyFlag(row, effectiveFlags)).length;
@@ -406,10 +407,10 @@ function SectorStatCards({ rows, effectiveKpis = P3_KPIS, effectiveFlags = FLAG_
   const highestRisk = means.sort((a, b) => b.mean - a.mean)[0];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+    <div className={`grid grid-cols-1 md:grid-cols-2 ${hasFlags ? "xl:grid-cols-4" : "xl:grid-cols-3"} gap-4`}>
       <StatCard label="Total companies in selected sectors" value={totalCompanies.toLocaleString()} sublabel="Top 8 sectors only" color="#176fb3" />
       <StatCard label={`Avg ${principleName} composite`} value={fmtNumber(avgComposite, 1)} sublabel={`Risk tier: ${riskTier(avgComposite) === "none" ? "—" : riskTier(avgComposite)}`} color={tierColor(avgComposite)} />
-      <StatCard label="Total flagged companies" value={effectiveFlags.length ? totalFlagged.toLocaleString() : "—"} sublabel={effectiveFlags.length ? "selected sectors" : "No flags configured"} color="#ff5e5e" />
+      {hasFlags ? <StatCard label="Total flagged companies" value={totalFlagged.toLocaleString()} sublabel="selected sectors" color="#ff5e5e" /> : null}
       <StatCard label="Highest risk KPI" value={highestRisk ? highestRisk.name : "—"} sublabel={highestRisk ? `mean score ${highestRisk.mean.toFixed(1)}` : ""} color={highestRisk ? highestRisk.color : "#94a3b8"} />
     </div>
   );
