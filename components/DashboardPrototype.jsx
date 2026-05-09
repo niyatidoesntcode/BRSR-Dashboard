@@ -707,7 +707,7 @@ export default function DashboardPrototype() {
             )}
           </div>
 
-          {isPrincipleView && !(selectedQuestion && String(selectedQuestion).endsWith("_Quant")) ? (
+          {isPrincipleView ? (
             <div className="sticky top-0 z-30 bg-white border-b" style={{ borderColor: "#d4dce8" }}>
               <div className="flex border-b pl-[6px]" style={{ borderColor: PALETTE.border }}>
                 {["Quant KPIs", "SRS", "Combined", "Overall SRS"].map((tab) => {
@@ -919,6 +919,7 @@ export default function DashboardPrototype() {
                         onBack={backToSectionB}
                         onGoToQuestion={goToQuestion}
                         handlersRegistry={HANDLERS}
+                        __hideControls={selectedQuestion && String(selectedQuestion).endsWith("_Quant")}
                       />
                     )}
                   </div>

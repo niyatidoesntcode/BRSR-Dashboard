@@ -1429,7 +1429,7 @@ function CompanyView({ rows, activeKpis, selectedCompany, setSelectedCompany, ef
   );
 }
 
-export function QuestionPage({ data, sector, viewMode, activeKpis, setSector, setViewMode, setActiveKpis, __overrideKPIs, __overrideFlags, __principleId }) {
+export function QuestionPage({ data, sector, viewMode, activeKpis, setSector, setViewMode, setActiveKpis, __overrideKPIs, __overrideFlags, __principleId, __hideControls }) {
   const [selectedCompany, setSelectedCompany] = useState(null);
 
   const effectiveKpis = (__overrideKPIs && __overrideKPIs.length) ? __overrideKPIs : P3_KPIS;
@@ -1619,7 +1619,7 @@ export function QuestionPage({ data, sector, viewMode, activeKpis, setSector, se
 
   return (
     <div className="space-y-4">
-      {controls}
+      {!__hideControls && controls}
       <SectorStatCards rows={visibleRows} effectiveKpis={effectiveKpis} effectiveFlags={effectiveFlags} principleName={principleName} />
       {selectedViewMode === "Sector" ? (
         <SectorView rows={visibleRows} activeKpis={activeKpiNames} selectedSectors={selectedSectors} effectiveKpis={effectiveKpis} effectiveFlags={effectiveFlags} principleName={principleName} />
