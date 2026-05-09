@@ -1,5 +1,6 @@
 import Papa from "papaparse";
 import React, { useEffect, useMemo, useState } from "react";
+import * as P5Q5Handler from "./P5Q5Handler";
 
 const P5_KPIS = [
   { key: "P5_1_score", name: "HR Policy", color: "#6c8fff", desc: "Policy coverage & quality" },

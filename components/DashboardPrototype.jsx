@@ -33,7 +33,8 @@ import * as P3QuantTrialHandler from "./questionHandlers/P3QuantTrialHandler";
 import * as P5QuantHandler from "./questionHandlers/P5QuantHandler";
 import * as P8QuantHandler from "./questionHandlers/P8QuantHandler";
 import * as P9QuantHandler from "./questionHandlers/P9QuantHandler";
-
+import * as PrincipleSRSHandler from "./questionHandlers/PrincipleSRSHandler";
+import * as OverallSRSHandler from "./questionHandlers/OverallSRSHandler";
 // Build a registry mapping qids -> handler module
 const HANDLERS = {
   "5": Q5Handler,
@@ -59,6 +60,11 @@ const HANDLERS = {
   "P8_Quant": P8QuantHandler,
   "P9_Quant": P9QuantHandler,
   "P3_Quant_Trial": P3QuantTrialHandler,
+  "P3_SRS": PrincipleSRSHandler,
+  "P5_SRS": PrincipleSRSHandler,
+  "P8_SRS": PrincipleSRSHandler,
+  "P9_SRS": PrincipleSRSHandler,
+  "Overall_SRS": OverallSRSHandler,
 };
 
 const LOGO_PATH = "/logo.png";
@@ -87,6 +93,15 @@ const KPI_CHIPS = {
   P8: ["CSR Spend", "Projects", "Beneficiaries", "Procurement %", "Local Hiring", "Social Audit"],
   P9: ["Complaints", "Resolution %", "Cybersecurity", "Product Safety", "NPS", "Recalls"],
 };
+
+const SRS_METRICS = [
+  { key: "SS", name: "Specificity Score", desc: "Placeholder description for specificity score." },
+  { key: "AS", name: "Actionability Score", desc: "Placeholder description for actionability score." },
+  { key: "CCS", name: "Compliance Coverage Score", desc: "Placeholder description for compliance coverage score." },
+  { key: "OES", name: "Outcome Evidence Score", desc: "Placeholder description for outcome evidence score." },
+  { key: "RTS", name: "Risk Tone Score", desc: "Placeholder description for risk tone score." },
+  { key: "TOS", name: "Text Outcome Score", desc: "Placeholder description for text outcome score." },
+];
 
 const PRINCIPLES = [
   { id: "P1", short: "Ethics & Transparency", name: "Businesses should conduct and govern themselves with integrity, and in a manner that is Ethical, Transparent and Accountable." },
@@ -117,6 +132,9 @@ export default function DashboardPrototype() {
   const [activeTopTab, setActiveTopTab] = useState("Quant KPIs");
   const [viewModeUi, setViewModeUi] = useState("Sector");
   const [sectorUi, setSectorUi] = useState("All Sectors");
+  const [srsCompanyUi, setSrsCompanyUi] = useState("");
+  const [srsYearUi, setSrsYearUi] = useState("FY2023-24");
+  const [srsMetricUi, setSrsMetricUi] = useState(["SS", "AS", "CCS", "OES", "RTS", "TOS"]);
   const [activeKpiUi, setActiveKpiUi] = useState([]);
 
   // QUESTION handler state
@@ -177,11 +195,26 @@ export default function DashboardPrototype() {
     (async () => {
       try {
         // Allow handler to accept options if it needs (paths etc.)
-        const data = await handler.loadData({
-          // You can provide defaults here or let the handler decide
+        const loadOptions = {
           generalCsvPath: "/GeneralDisclosures_df.csv",
           questionCsvPath: `/${selectedQuestion}.csv`,
-        });
+        };
+
+        if (typeof selectedQuestion === "string" && selectedQuestion.endsWith("_SRS")) {
+          const principleId = selectedQuestion.split("_")[0];
+          loadOptions.principleId = principleId;
+          loadOptions.reportYear = srsYearUi;
+          loadOptions.scoresCsvPath = `/scores_${principleId.toLowerCase()}_2024.csv`;
+          loadOptions.globalRankingPath = "/global_ranking_2024.csv";
+          loadOptions.sectorSummaryPath = "/sector_summary_2024.csv";
+        } else if (selectedQuestion === "Overall_SRS") {
+          loadOptions.isOverallSRS = true;
+          loadOptions.reportYear = srsYearUi;
+          loadOptions.globalRankingPath = "/global_ranking_2024.csv";
+          loadOptions.sectorSummaryPath = "/sector_summary_2024.csv";
+        }
+
+        const data = await handler.loadData(loadOptions);
         if (!cancelled) {
           setHandlerData(data || {});
           setHandlerLoading(false);
@@ -198,7 +231,7 @@ export default function DashboardPrototype() {
     return () => {
       cancelled = true;
     };
-  }, [selectedQuestion]);
+  }, [selectedQuestion, srsYearUi]);
 
   function navTo(item) {
     setSelected(item);
@@ -220,6 +253,11 @@ export default function DashboardPrototype() {
       // Let the quant handler default to all KPIs for that principle,
       // so the first view is composite-by-sector.
       setActiveKpiUi([]);
+    } else if (typeof qid === "string" && qid.endsWith("_SRS")) {
+      const pid = qid.split("_")[0];
+      setSelectedPrinciple(pid);
+      setExpandedP(pid);
+      setActiveTopTab("SRS");
     }
     // reset handler states; loader will run via useEffect
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -262,6 +300,8 @@ export default function DashboardPrototype() {
 
   const principleBannerInfo = PRINCIPLES.find((p) => p.id === activePrincipleId);
 
+  const selectedQuestionIsSRS = Boolean(selectedQuestion && String(selectedQuestion).endsWith("_SRS"));
+
   const dynamicSectorOptions = useMemo(() => {
     const sectors = handlerData?.sectors;
     if (Array.isArray(sectors) && sectors.length) {
@@ -283,8 +323,43 @@ export default function DashboardPrototype() {
   function resetControlZoneUi() {
     setViewModeUi("Sector");
     setSectorUi("All Sectors");
+    setSrsCompanyUi("");
+    setSrsYearUi("FY2023-24");
+    setSrsMetricUi(["SS", "AS", "CCS", "OES", "RTS", "TOS"]);
     setActiveKpiUi([]);
+    setFilters({
+      sector: "All",
+      capBucket: "All",
+      ngramSize: 1,
+      selectedCompanies: [],
+      selectedTheme: null,
+      themeCompareMode: "total",
+      search: "",
+    });
   }
+
+  const srsRows = useMemo(() => {
+    if (!selectedQuestionIsSRS || !handlerData?.rows?.length) return [];
+    return handlerData.rows.filter((row) => {
+      if (sectorUi && sectorUi !== "All Sectors" && row.Sector !== sectorUi) return false;
+      return true;
+    });
+  }, [handlerData, sectorUi, selectedQuestionIsSRS]);
+
+  const srsCompanyOptions = useMemo(() => {
+    return srsRows.map((row) => row.Company).filter(Boolean);
+  }, [srsRows]);
+
+  useEffect(() => {
+    if (!selectedQuestionIsSRS) return;
+    if (!srsRows.length) {
+      setSrsCompanyUi("");
+      return;
+    }
+    if (!srsCompanyUi || !srsRows.some((row) => row.Company === srsCompanyUi)) {
+      setSrsCompanyUi(srsRows[0].Company || "");
+    }
+  }, [srsRows, srsCompanyUi, selectedQuestionIsSRS]);
 
   function selectPrincipleQuant(pid) {
     setExpandedP(pid);
@@ -303,13 +378,10 @@ export default function DashboardPrototype() {
         className="bg-white border rounded-lg"
         style={{ borderColor: PALETTE.border, padding: "18px 22px" }}
       >
-        <div
-          className="text-[11px] font-semibold uppercase tracking-[0.07em]"
-          style={{ color: PALETTE.text3 }}
-        >
+        <div className="text-[11px] font-semibold uppercase tracking-[0.07em]" style={{ color: PALETTE.text3 }}>
           {label}
         </div>
-        <div className="text-[26px] font-bold leading-tight mt-1" style={{ color: color || activeBlue }}>
+        <div className="mt-1 text-[26px] font-bold leading-tight" style={{ color: color || activeBlue }}>
           {value}
         </div>
         <div className="text-xs mt-1" style={{ color: PALETTE.text3 }}>
@@ -343,7 +415,21 @@ export default function DashboardPrototype() {
       {/* Header */}
       <header
         className="fixed left-0 right-0 top-0 z-50 flex items-center gap-3 px-5"
-        style={{ height: HEADER_HEIGHT, background: "#ffffff", borderBottom: `1px solid ${PALETTE.border}` }}
+        style={{
+          position: "fixed",
+          left: 0,
+          right: 0,
+          top: 0,
+          zIndex: 50,
+          height: HEADER_HEIGHT,
+          background: "#ffffff",
+          borderBottom: `1px solid ${PALETTE.border}`,
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          paddingLeft: 20,
+          paddingRight: 20,
+        }}
       >
         <button
           aria-label="Toggle sidebar"
@@ -373,8 +459,21 @@ export default function DashboardPrototype() {
         </div>
 
         <div className="flex-1" />
-        <div className="text-[11.5px] px-3 py-1 rounded-full border" style={{ color: PALETTE.text3, background: "#f8fafc", borderColor: PALETTE.border }}>FY 2022-23</div>
-        <div style={{ width: 1, height: 26, background: PALETTE.border }} />
+        {selectedQuestionIsSRS && (
+          <>
+            <select
+              value={srsYearUi}
+              onChange={(e) => setSrsYearUi(e.target.value)}
+              className="text-[11.5px] px-3 py-1 rounded-md bg-white"
+              style={{ border: `1px solid ${PALETTE.border}`, color: PALETTE.text2 }}
+            >
+              <option value="FY2021-22">FY2021-22</option>
+              <option value="FY2022-23">FY2022-23</option>
+              <option value="FY2023-24">FY2023-24</option>
+            </select>
+            <div style={{ width: 1, height: 26, background: PALETTE.border }} />
+          </>
+        )}
         <div className="text-[11.5px] px-3 py-1 rounded-full border" style={{ color: PALETTE.text2, background: "#f8fafc", borderColor: PALETTE.border }}>NSE/BSE</div>
       </header>
 
@@ -384,12 +483,17 @@ export default function DashboardPrototype() {
         <aside
           className="fixed bg-white border-r overflow-y-auto z-40"
           style={{
+            position: "fixed",
             left: 0,
             top: HEADER_HEIGHT,
             width: collapsed ? 0 : SIDEBAR_WIDTH,
             height: `calc(100vh - ${HEADER_HEIGHT}px)`,
             transition: "width 300ms cubic-bezier(.2,.9,.2,1)",
             borderColor: PALETTE.border,
+            background: "#ffffff",
+            overflowY: "auto",
+            borderRight: `1px solid ${PALETTE.border}`,
+            zIndex: 40,
           }}
         >
           <div className={`transition-opacity duration-200 ease-in-out ${collapsed ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
@@ -481,7 +585,7 @@ export default function DashboardPrototype() {
                           <div className="pt-[2px] pb-1">
                             {[
                               { tab: "Quant KPIs", disabled: false },
-                              { tab: "SRS", disabled: true },
+                              { tab: "SRS", disabled: false },
                               { tab: "Combined", disabled: true },
                             ].map((sub) => {
                               const subActive = isActive && activeTopTab === sub.tab;
@@ -491,7 +595,11 @@ export default function DashboardPrototype() {
                                   onClick={() => {
                                     if (sub.disabled) return;
                                     setActiveTopTab(sub.tab);
-                                    selectPrincipleQuant(p.id);
+                                    if (sub.tab === "SRS") {
+                                      goToQuestion(`${p.id}_SRS`);
+                                    } else {
+                                      selectPrincipleQuant(p.id);
+                                    }
                                   }}
                                   className="w-full text-left flex items-center gap-2 px-3 py-[6px]"
                                   style={{
@@ -533,10 +641,13 @@ export default function DashboardPrototype() {
         <main 
           className="fixed overflow-auto transition-all duration-300 ease-in-out"
           style={{ 
+            position: "fixed",
             top: HEADER_HEIGHT,
             left: collapsed ? 0 : SIDEBAR_WIDTH,
             right: 0,
             bottom: 0,
+            overflow: "auto",
+            background: PALETTE.bg,
           }}
         >
           <div style={{ background: bannerColor, borderColor: PALETTE.border }} className="px-6 py-[18px] border-b">
@@ -546,7 +657,9 @@ export default function DashboardPrototype() {
                   <div className="flex items-center gap-3">
                     <button onClick={backToSectionB} className="inline-flex items-center gap-1 px-3 py-1 rounded-md border hover:bg-blue-50 transition text-sm" style={{ color: activeBlue, borderColor: PALETTE.border }}>Back</button>
                     <div className="text-sm" style={{ color: PALETTE.text2 }}>
-                      {selectedQuestion.startsWith("P") ? `Principle ${selectedQuestion.split("_")[0].slice(1)} - Quant KPIs` : `Management & Process Disclosures > Q${selectedQuestion}`}
+                      {selectedQuestion.startsWith("P")
+                        ? `Principle ${selectedQuestion.split("_")[0].slice(1)} - ${selectedQuestionIsSRS ? "SRS" : "Quant KPIs"}`
+                        : `Management & Process Disclosures > Q${selectedQuestion}`}
                     </div>
                   </div>
                 </div>
@@ -594,17 +707,25 @@ export default function DashboardPrototype() {
             )}
           </div>
 
-          {isPrincipleView && !(typeof selectedQuestion === "string" && selectedQuestion.endsWith("_Quant")) ? (
+          {isPrincipleView && !(selectedQuestion && String(selectedQuestion).endsWith("_Quant")) ? (
             <div className="sticky top-0 z-30 bg-white border-b" style={{ borderColor: "#d4dce8" }}>
               <div className="flex border-b pl-[6px]" style={{ borderColor: PALETTE.border }}>
-                {["Quant KPIs", "SRS", "Combined"].map((tab) => {
-                  const disabled = tab !== "Quant KPIs";
+                {["Quant KPIs", "SRS", "Combined", "Overall SRS"].map((tab) => {
+                  const disabled = tab === "Combined";
                   const active = activeTopTab === tab;
                   return (
                     <button
                       key={tab}
                       onClick={() => {
-                        if (!disabled) setActiveTopTab(tab);
+                        if (disabled) return;
+                        setActiveTopTab(tab);
+                        if (tab === "SRS" && activePrincipleId) {
+                          goToQuestion(`${activePrincipleId}_SRS`);
+                        } else if (tab === "Quant KPIs" && activePrincipleId) {
+                          selectPrincipleQuant(activePrincipleId);
+                        } else if (tab === "Overall SRS") {
+                          goToQuestion("Overall_SRS");
+                        }
                       }}
                       className="px-[22px] py-[11px] text-[13.5px] flex items-center gap-[7px]"
                       style={{
@@ -627,61 +748,127 @@ export default function DashboardPrototype() {
               </div>
 
               <div className="flex items-center gap-[10px] px-5 py-[9px] flex-wrap" style={{ background: "#f9fafb", borderTop: `1px solid ${PALETTE.border}` }}>
-                <div className="flex rounded-full p-[2px] gap-[2px]" style={{ background: "#e8ecf1" }}>
-                  {["Sector", "Company"].map((mode) => (
-                    <button
-                      key={mode}
-                      onClick={() => setViewModeUi(mode)}
-                      className="px-[14px] py-1 rounded-full text-[12.5px]"
-                      style={{
-                        fontWeight: viewModeUi === mode ? 600 : 400,
-                        background: viewModeUi === mode ? "#fff" : "transparent",
-                        color: viewModeUi === mode ? PALETTE.text1 : PALETTE.text2,
-                        boxShadow: viewModeUi === mode ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
-                      }}
-                    >
-                      {mode}
-                    </button>
-                  ))}
-                </div>
-
-                <select
-                  value={sectorUi}
-                  onChange={(e) => setSectorUi(e.target.value)}
-                  className="text-[12.5px] px-[10px] py-[5px] rounded-md bg-white"
-                  style={{ border: `1px solid ${PALETTE.border}`, color: PALETTE.text1 }}
-                >
-                  {dynamicSectorOptions.map((s) => {
-                    const value = typeof s === "string" ? s : s.value;
-                    const label = typeof s === "string" ? s : s.label;
-                    return (
-                      <option key={value} value={value}>{label}</option>
-                    );
-                  })}
-                </select>
-
-                <div style={{ width: 1, height: 20, background: PALETTE.border }} />
-
-                <div className="flex gap-[5px] flex-wrap flex-1">
-                  {(KPI_CHIPS[activePrincipleId] || []).map((chip) => {
-                    const on = activeKpiUi.includes(chip);
-                    return (
+                {!selectedQuestionIsSRS && (
+                  <div className="flex rounded-full p-[2px] gap-[2px]" style={{ background: "#e8ecf1" }}>
+                    {["Sector", "Company"].map((mode) => (
                       <button
-                        key={chip}
-                        onClick={() => toggleKpiUi(chip)}
-                        className="text-xs px-[11px] py-1 rounded-full border"
+                        key={mode}
+                        onClick={() => setViewModeUi(mode)}
+                        className="px-[14px] py-1 rounded-full text-[12.5px]"
                         style={{
-                          borderColor: on ? activeBlue : PALETTE.border,
-                          background: on ? PALETTE.activeBlueLight : "#fff",
-                          color: on ? activeBlue : PALETTE.text2,
-                          fontWeight: on ? 600 : 400,
+                          fontWeight: viewModeUi === mode ? 600 : 400,
+                          background: viewModeUi === mode ? "#fff" : "transparent",
+                          color: viewModeUi === mode ? PALETTE.text1 : PALETTE.text2,
+                          boxShadow: viewModeUi === mode ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
                         }}
                       >
-                        {chip}
+                        {mode}
                       </button>
-                    );
-                  })}
-                </div>
+                    ))}
+                  </div>
+                )}
+
+                {selectedQuestionIsSRS ? (
+                  <>
+                    <select
+                      value={sectorUi}
+                      onChange={(e) => {
+                        setSectorUi(e.target.value);
+                        setSrsCompanyUi("");
+                      }}
+                      className="text-[12.5px] px-[10px] py-[5px] rounded-md bg-white"
+                      style={{ border: `1px solid ${PALETTE.border}`, color: PALETTE.text1 }}
+                    >
+                      {dynamicSectorOptions.map((s) => {
+                        const value = typeof s === "string" ? s : s.value;
+                        const label = typeof s === "string" ? s : s.label;
+                        return <option key={value} value={value}>{label}</option>;
+                      })}
+                    </select>
+
+                    <select
+                      value={srsCompanyUi}
+                      onChange={(e) => setSrsCompanyUi(e.target.value)}
+                      className="text-[12.5px] px-[10px] py-[5px] rounded-md bg-white min-w-[240px]"
+                      style={{ border: `1px solid ${PALETTE.border}`, color: PALETTE.text1 }}
+                    >
+                      {srsCompanyOptions.length ? null : <option value="">No companies available</option>}
+                      {srsCompanyOptions.map((companyName) => (
+                        <option key={companyName} value={companyName}>{companyName}</option>
+                      ))}
+                    </select>
+
+                    <div style={{ width: 1, height: 20, background: PALETTE.border }} />
+
+                    <div className="flex gap-[5px] flex-wrap flex-1">
+                      {SRS_METRICS.map((metric) => {
+                        const on = srsMetricUi.includes(metric.key);
+                        return (
+                          <button
+                            key={metric.key}
+                            onClick={() => {
+                              setSrsMetricUi((current) => {
+                                if (current.includes(metric.key)) {
+                                  if (current.length === 1) return current;
+                                  return current.filter((item) => item !== metric.key);
+                                }
+                                return [...current, metric.key];
+                              });
+                            }}
+                            title={metric.desc}
+                            className="text-xs px-[11px] py-1 rounded-full border"
+                            style={{
+                              borderColor: on ? activeBlue : PALETTE.border,
+                              background: on ? PALETTE.activeBlueLight : "#fff",
+                              color: on ? activeBlue : PALETTE.text2,
+                              fontWeight: on ? 600 : 400,
+                            }}
+                          >
+                            {metric.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <select
+                      value={sectorUi}
+                      onChange={(e) => setSectorUi(e.target.value)}
+                      className="text-[12.5px] px-[10px] py-[5px] rounded-md bg-white"
+                      style={{ border: `1px solid ${PALETTE.border}`, color: PALETTE.text1 }}
+                    >
+                      {dynamicSectorOptions.map((s) => {
+                        const value = typeof s === "string" ? s : s.value;
+                        const label = typeof s === "string" ? s : s.label;
+                        return <option key={value} value={value}>{label}</option>;
+                      })}
+                    </select>
+
+                    <div style={{ width: 1, height: 20, background: PALETTE.border }} />
+
+                    <div className="flex gap-[5px] flex-wrap flex-1">
+                      {(KPI_CHIPS[activePrincipleId] || []).map((chip) => {
+                        const on = activeKpiUi.includes(chip);
+                        return (
+                          <button
+                            key={chip}
+                            onClick={() => toggleKpiUi(chip)}
+                            className="text-xs px-[11px] py-1 rounded-full border"
+                            style={{
+                              borderColor: on ? activeBlue : PALETTE.border,
+                              background: on ? PALETTE.activeBlueLight : "#fff",
+                              color: on ? activeBlue : PALETTE.text2,
+                              fontWeight: on ? 600 : 400,
+                            }}
+                          >
+                            {chip}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
 
                 <button
                   onClick={resetControlZoneUi}
@@ -719,6 +906,11 @@ export default function DashboardPrototype() {
                         filters={filters}
                         setFilters={setFilters}
                         sector={sectorUi}
+                        selectedCompany={srsCompanyUi}
+                        selectedYear={srsYearUi}
+                        selectedMetrics={srsMetricUi}
+                        setSelectedCompany={setSrsCompanyUi}
+                        setSelectedMetrics={setSrsMetricUi}
                         viewMode={viewModeUi}
                         activeKpis={activeKpiUi}
                         setSector={setSectorUi}

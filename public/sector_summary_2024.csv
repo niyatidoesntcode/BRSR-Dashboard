@@ -1,0 +1,24 @@
+Sector,Companies,Median_TOS,Median_SRS,Min_TOS,Max_TOS,Low_Count,Medium_Count,High_Count,Critical_Count
+"Oil, Gas & Consumable Fuels",18,0.6092,20.09,0.131,0.7295,12,4,1,1
+Transportation and Automotive,44,0.5439,35.765,0.2639,0.6998,15,12,12,5
+Infrastructure and Construction,41,0.5283,43.82,0.2853,0.7178,7,16,10,8
+Power Generation and Transmission,51,0.5246,24.73,0.0264,0.6883,26,21,3,1
+Manufacturing & Engineering,218,0.5151,28.405,0.05,0.6996,89,98,26,5
+Real Estate & Construction,32,0.5112,45.475,0.2462,0.7323,5,13,12,2
+Mining and Metals,43,0.5089,41.52,0.2032,0.7258,9,22,9,3
+Forestry and Forest Products,6,0.5089,75.41,0.4655,0.642,2,0,1,3
+FMCG,70,0.5063,32.66,0.0,0.7518,17,40,9,4
+Chemicals,82,0.5011,35.16,0.1099,0.7133,22,42,15,3
+Consumer Durables,57,0.4996,44.58,0.2066,0.7353,9,25,17,6
+Industrial Products and Equipment,32,0.4995,41.97,0.2184,0.7028,6,12,11,3
+Healthcare,122,0.4872,39.03,0.2064,0.6669,34,58,23,7
+"Information, Communication & Technology",178,0.4811,33.745,0.0309,0.7103,49,99,27,3
+"Apparel, Garments and Textiles",32,0.4774,32.985,0.1084,0.6591,12,13,6,1
+Retail,17,0.4692,38.76,0.2964,0.5786,5,5,5,2
+Financial Services,139,0.4688,42.0,0.1351,0.7105,28,60,44,7
+Services,48,0.4668,46.24,0.1767,0.7162,6,19,20,3
+Media and Entertainment,17,0.4374,53.31,0.2763,0.6213,6,2,6,3
+Leisure and Recreation Services,6,0.4346,42.99,0.2414,0.5803,1,2,2,1
+"Breweries, Distilleries and Beverages",7,0.4254,75.47,0.383,0.5556,1,2,0,4
+Automotive Components & Equipment,2,0.3964,50.0,0.2769,0.516,1,0,0,1
+Unclassified,2,0.151,50.0,0.0117,0.2904,1,0,0,1
