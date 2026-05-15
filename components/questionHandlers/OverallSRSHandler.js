@@ -6,6 +6,7 @@ import {
   CartesianGrid,
   Cell,
   Legend,
+  LabelList,
   PieChart,
   Pie,
   RadarChart,
@@ -464,7 +465,11 @@ export async function loadData({ isOverallSRS = false, globalRankingPath = "/glo
     Rank: parseNumber(row.Global_SRS_Rank),
     Company: row.Company,
     Sector: row.Sector,
-    SRS: parseNumber(row.SRS),
+    SRS: (() => {
+      const v = parseNumber(row.SRS);
+      if (v === null) return null;
+      return v > 1 ? v / 100 : v;
+    })(),
     Risk_Level: row.Risk_Level || "Unknown",
     Overall_TOS: parseNumber(row.Overall_TOS),
     TOS_P3: parseNumber(row.TOS_P3),

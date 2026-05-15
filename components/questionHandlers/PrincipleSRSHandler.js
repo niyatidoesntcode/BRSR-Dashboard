@@ -726,7 +726,11 @@ export async function loadData({
   const globalRows = loadRows(globalText).map((row) => ({
     Company: row.Company,
     Sector: row.Sector,
-    GlobalSRS: parseNumber(row.SRS),
+    GlobalSRS: (() => {
+      const v = parseNumber(row.SRS);
+      if (v === null) return null;
+      return v > 1 ? v / 100 : v;
+    })(),
     OverallTOS: parseNumber(row.Overall_TOS),
     RiskLevel: row.Risk_Level || "Unknown",
     GlobalRank: parseNumber(row.Global_SRS_Rank),
