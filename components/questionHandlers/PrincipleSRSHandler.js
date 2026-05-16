@@ -509,7 +509,7 @@ function SRSRadarChart({ company, sectorRows, selectedMetrics }) {
                   <td className="py-2 pr-2 font-medium text-slate-700">{metric.label}</td>
                   <td className="py-2 pr-2">{round(companyValue, 3)}</td>
                   <td className="py-2 pr-2">{round(sectorMean, 3)}</td>
-                  <td className="py-2 pr-2 font-semibold" style={{ color: delta === null ? "#94a3b8" : delta > 0 ? "#ef4444" : "#10b981" }}>
+                  <td className="py-2 pr-2 font-semibold" style={{ color: delta === null ? "#94a3b8" : delta > 0 ? "#10b981" : "#ef4444" }}>
                     {delta === null ? "—" : `${delta > 0 ? "+" : ""}${round(delta, 3)}`}
                   </td>
                 </tr>

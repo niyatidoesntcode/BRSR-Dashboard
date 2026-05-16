@@ -125,7 +125,7 @@ const GD_QUESTIONS = [
 
 export default function DashboardPrototype() {
   // Shell UI state
-  const [selected, setSelected] = useState("gd-b");
+  const [selected, setSelected] = useState("overview");
   const [collapsed, setCollapsed] = useState(false);
   const [selectedPrinciple, setSelectedPrinciple] = useState("P1");
   const [expandedP, setExpandedP] = useState("P3");
@@ -200,16 +200,16 @@ export default function DashboardPrototype() {
           questionCsvPath: `/${selectedQuestion}.csv`,
         };
 
-        if (typeof selectedQuestion === "string" && selectedQuestion.endsWith("_SRS")) {
+        if (selectedQuestion === "Overall_SRS") {
+          loadOptions.isOverallSRS = true;
+          loadOptions.reportYear = srsYearUi;
+          loadOptions.globalRankingPath = "/global_ranking_2024.csv";
+          loadOptions.sectorSummaryPath = "/sector_summary_2024.csv";
+        } else if (typeof selectedQuestion === "string" && selectedQuestion.endsWith("_SRS")) {
           const principleId = selectedQuestion.split("_")[0];
           loadOptions.principleId = principleId;
           loadOptions.reportYear = srsYearUi;
           loadOptions.scoresCsvPath = `/scores_${principleId.toLowerCase()}_2024.csv`;
-          loadOptions.globalRankingPath = "/global_ranking_2024.csv";
-          loadOptions.sectorSummaryPath = "/sector_summary_2024.csv";
-        } else if (selectedQuestion === "Overall_SRS") {
-          loadOptions.isOverallSRS = true;
-          loadOptions.reportYear = srsYearUi;
           loadOptions.globalRankingPath = "/global_ranking_2024.csv";
           loadOptions.sectorSummaryPath = "/sector_summary_2024.csv";
         }
@@ -511,7 +511,7 @@ export default function DashboardPrototype() {
                       fontWeight: selected === "overview" ? 600 : 400,
                     }}
                   >
-                    Data Overview
+                    About This Project
                   </button>
 
                   <button
@@ -699,8 +699,8 @@ export default function DashboardPrototype() {
                   </>
                 ) : (
                   <>
-                    <h1 className="text-[19px] font-bold" style={{ color: PALETTE.text1 }}>Data Overview</h1>
-                    <div className="text-[13px] mt-1" style={{ color: PALETTE.text2 }}>Dataset summary &amp; global KPIs across all principles</div>
+                    <h1 className="text-[19px] font-bold" style={{ color: PALETTE.text1 }}>About This Project</h1>
+                    <div className="text-[13px] mt-1" style={{ color: PALETTE.text2 }}>An overview of BRSR, our team, the dashboard purpose, and how to use it.</div>
                   </>
                 )}
               </>
@@ -936,19 +936,81 @@ export default function DashboardPrototype() {
               <>
                 {selected === "overview" && (
                   <div className="space-y-[18px]">
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-[14px]">
-                      {renderStatCard("Listed Companies", "1,115", "NSE / BSE listed")}
-                      {renderStatCard("Sectors Covered", "21", "BRSR classification", "#059669")}
-                      {renderStatCard("Total Filings", "3,280", "across filing years", "#e76f51")}
-                      {renderStatCard("Social Principles", "4", "P3 - P5 - P8 - P9", activeBlue)}
-                    </div>
-
                     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                      {renderPlaceholderPanel("Filing Coverage by Year", 240)}
-                      {renderPlaceholderPanel("Sector Distribution of Companies", 240)}
+                      <div className="bg-white border rounded-lg p-6" style={{ borderColor: PALETTE.border }}>
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-2" style={{ color: activeBlue }}>What is BRSR?</div>
+                        <h3 className="text-lg font-semibold mb-3" style={{ color: PALETTE.text1 }}>India's mandatory ESG disclosure framework</h3>
+                        <p className="text-sm leading-6" style={{ color: PALETTE.text2 }}>
+                          BRSR stands for Business Responsibility and Sustainability Reporting. It is SEBI's framework for structured,
+                          non-financial disclosures by listed companies. The report brings together quantitative indicators and narrative
+                          disclosures so stakeholders can evaluate responsible business conduct, not just financial performance.
+                        </p>
+                      </div>
+
+                      <div className="bg-white border rounded-lg p-6" style={{ borderColor: PALETTE.border }}>
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-2" style={{ color: activeBlue }}>Who are we?</div>
+                        <h3 className="text-lg font-semibold mb-3" style={{ color: PALETTE.text1 }}>The ILGC VI capstone team</h3>
+                        <p className="text-sm leading-6" style={{ color: PALETTE.text2 }}>
+                          Team Lakshit Tyagi, Niyati Singh, Preesha Katial, and Tisha Bhavsar worked with Professor T.V. Ramanathan
+                          and Partners in Change (PIC) to evaluate the informational quality of social disclosures across 1,164 listed
+                          Indian companies spanning 23 sectors.
+                        </p>
+                      </div>
                     </div>
 
-                    {renderPlaceholderPanel("Cross-Principle Disclosure Completeness", 200)}
+                    <div className="bg-white border rounded-lg p-6" style={{ borderColor: PALETTE.border }}>
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-2" style={{ color: activeBlue }}>Purpose of the dashboard</div>
+                      <h3 className="text-lg font-semibold mb-3" style={{ color: PALETTE.text1 }}>A transparent view of quantitative and qualitative disclosure quality</h3>
+                      <p className="text-sm leading-6 mb-3" style={{ color: PALETTE.text2 }}>
+                        This dashboard lets you explore the social pillar of BRSR through a combination of KPI summaries, narrative scoring,
+                        and sector-relative Social Risk Scores. It is designed to surface patterns in P3, P5, P8, and P9 disclosures,
+                        and to make the scoring approach auditable rather than opaque.
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm" style={{ color: PALETTE.text2 }}>
+                        <div className="rounded-md border p-3" style={{ borderColor: PALETTE.border, background: "#fbfdff" }}>
+                          Compare firms across sectors using normalized KPI and narrative signals.
+                        </div>
+                        <div className="rounded-md border p-3" style={{ borderColor: PALETTE.border, background: "#fbfdff" }}>
+                          Inspect principle-level quality across P3, P5, P8, and P9.
+                        </div>
+                        <div className="rounded-md border p-3" style={{ borderColor: PALETTE.border, background: "#fbfdff" }}>
+                          Trace every score back to structured data or extracted text evidence.
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white border rounded-lg p-6" style={{ borderColor: PALETTE.border }}>
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-2" style={{ color: activeBlue }}>How to use this dashboard</div>
+                      <h3 className="text-lg font-semibold mb-3" style={{ color: PALETTE.text1 }}>A quick walkthrough</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm" style={{ color: PALETTE.text2 }}>
+                        <div>
+                          <div className="font-semibold mb-1" style={{ color: PALETTE.text1 }}>1. Start here</div>
+                          Open this page first to understand the project, scope, and data structure before moving into detailed analysis.
+                        </div>
+                        <div>
+                          <div className="font-semibold mb-1" style={{ color: PALETTE.text1 }}>2. Move to principles</div>
+                          Use the sidebar to explore each social principle and compare quantitative and qualitative views.
+                        </div>
+                        <div>
+                          <div className="font-semibold mb-1" style={{ color: PALETTE.text1 }}>3. Review filters</div>
+                          Narrow the analysis by sector, company, or scoring view when inspecting principle-level results.
+                        </div>
+                        <div>
+                          <div className="font-semibold mb-1" style={{ color: PALETTE.text1 }}>4. Read the signals</div>
+                          Treat high scores as a prompt for scrutiny, not a final judgment. The dashboard shows disclosure quality, not ground truth performance.
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white border rounded-lg p-6" style={{ borderColor: PALETTE.border }}>
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-2" style={{ color: activeBlue }}>Footer</div>
+                      <h3 className="text-lg font-semibold mb-3" style={{ color: PALETTE.text1 }}>Current dashboard version</h3>
+                      <p className="text-sm leading-6" style={{ color: PALETTE.text2 }}>
+                        This version is a working prototype for ILGC VI, built in Next.js with a dashboard-style interface for exploration,
+                        not for official ranking publication. It combines placeholder overview content with the current BRSR analysis pipeline,
+                        and may continue to evolve as the project is refined.
+                      </p>
+                    </div>
                   </div>
                 )}
 
